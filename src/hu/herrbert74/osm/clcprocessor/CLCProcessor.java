@@ -166,7 +166,7 @@ public class CLCProcessor {
 		public void endElement(String uri, String localName, String qName)
 				throws SAXException {
 			eleStack.pop();
-			if ("way".equals(qName)) {
+			if ("node".equals(qName)) {
 				villageNodes.add(vn);
 				vn = new VillageNode();
 			}
