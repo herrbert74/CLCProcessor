@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor;
+package hu.herrbert74.osm.clcprocessor.villagepolygon;
 
 import java.util.ArrayList;
 

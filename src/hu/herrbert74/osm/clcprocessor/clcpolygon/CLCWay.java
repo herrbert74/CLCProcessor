@@ -1,21 +1,21 @@
-package hu.herrbert74.osm.clcprocessor;
+package hu.herrbert74.osm.clcprocessor.clcpolygon;
 
 import java.util.ArrayList;
 
-public class VillageRelation {
-	String name;
+public class CLCWay {
+	int id;
 	ArrayList<Integer> members;	
 	
-	public VillageRelation(){
-		name = "";
+	public CLCWay(){
+		id = 0;
 		members = new ArrayList<Integer>();
 	}
 	
-	public String getName() {
-		return name;
+	public int getWayId() {
+		return id;
 	}
-	public void setName(String name) {
-		this.name = name;
+	public void setWayId(int id) {
+		this.id = id;
 	}
 	public ArrayList<Integer> getMembers() {
 		return members;
