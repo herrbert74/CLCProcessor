@@ -16,14 +16,17 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class VillagePolygonHelper {
-	/*ArrayList<VillageNode> villageNodes = new ArrayList<VillageNode>();
-	ArrayList<VillageRelation> villageRelations = new ArrayList<VillageRelation>();
-	ArrayList<VillageWay> villageWays = new ArrayList<VillageWay>();*/
+	/*
+	 * ArrayList<VillageNode> villageNodes = new ArrayList<VillageNode>();
+	 * ArrayList<VillageRelation> villageRelations = new
+	 * ArrayList<VillageRelation>(); ArrayList<VillageWay> villageWays = new
+	 * ArrayList<VillageWay>();
+	 */
 	ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
-	Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>(); 
+	Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
 	Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>();
-	Map<String, VillageRelation> villageRelationsMap = new HashMap<String, VillageRelation>(); 
-		
+	Map<String, VillageRelation> villageRelationsMap = new HashMap<String, VillageRelation>();
+
 	public void findWayNames(File file) throws ParserConfigurationException,
 			SAXException, IOException {
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
@@ -41,29 +44,60 @@ public class VillagePolygonHelper {
 		parser.parse(file, nodesHandler);
 		villageNodesMap = nodesHandler.getNodes();
 
-		villagePolygons = createVillagePoligons();
+		villagePolygons = createVillagePolygons();
 	}
 
-	private ArrayList<VillagePolygon> createVillagePoligons() {
-		ArrayList<VillagePolygon> villagePoligons = new ArrayList<VillagePolygon>();
+	private ArrayList<VillagePolygon> createVillagePolygons() {
+		ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
 		int z = 0;
 		for (VillageRelation vr : villageRelationsMap.values()) {
-			System.out.println("polygon: " + Integer.toString(++z) + "/" + Integer.toString(villageRelationsMap.size()));
+			System.out.println("polygon: " + Integer.toString(++z) + "/"
+					+ Integer.toString(villageRelationsMap.size()));
 			VillagePolygon vp = new VillagePolygon();
 			vp.setName(vr.getName());
+			int lastNode = 0;
+			do {
+				int way = getNextVillageWay(vr, villageWaysMap, lastNode);
+				VillageWay vw = villageWaysMap.get(way);
+				boolean areNodesForward = (lastNode == 0 || vw.members.get(0) == lastNode);
+				if (areNodesForward) {
+					for (int i = 0; i < vw.members.size(); i++) {
+						vp.addVillageNode(villageNodesMap.get(vw.members.get(i)));
+						lastNode = vp.villageNodes.get(vp.villageNodes.size() - 1).getNodeId();
+					}
+				}else {
+					for (int i = vw.members.size() -1; i >= 0; i--) {
+						vp.addVillageNode(villageNodesMap.get(vw.members.get(i)));
+						lastNode = vp.villageNodes.get(vp.villageNodes.size() - 1).getNodeId();
+					}
+				}
+				vp.villageNodes.remove(vp.villageNodes.size()-1);
+				vr.members.remove(vr.members.indexOf(vw.getWayId()));
+			} while (vr.members.size() > 0);
+			villagePolygons.add(vp);
+		}
+		return villagePolygons;
+	}
+
+	private int getNextVillageWay(VillageRelation vr,
+			Map<Integer, VillageWay> villageWaysMap2, int lastVillageNode) {
+		if (lastVillageNode == 0) {
+			return vr.members.get(0);
+		} else {
 			for (int member : vr.members) {
-				VillageWay vw = villageWaysMap.get(member);
-				for (int memberNode : vw.members) {
-					vp.addVillageNode(villageNodesMap.get(memberNode));
+				if (villageWaysMap2.get(member).members
+						.contains(lastVillageNode)) {
+					return member;
+				}else{
+					return vr.members.get(0);
 				}
 			}
-			villagePoligons.add(vp);
 		}
-		return villagePoligons;
+		return 0;
 	}
 
 	private static class OsmNodesHandler extends DefaultHandler {
-		Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>(); 
+		Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
 		private final ArrayList<VillageNode> villageNodes = new ArrayList<VillageNode>();
 		private final Stack<String> eleStack = new Stack<String>();
 		private VillageNode vn = new VillageNode();
@@ -136,7 +170,7 @@ public class VillagePolygonHelper {
 	}
 
 	private static class OsmWaysHandler extends DefaultHandler {
-		Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>(); 
+		Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>();
 		private final ArrayList<VillageWay> villageWays = new ArrayList<VillageWay>();
 		private final Stack<String> eleStack = new Stack<String>();
 		private VillageWay vw = new VillageWay();

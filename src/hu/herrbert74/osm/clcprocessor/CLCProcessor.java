@@ -18,8 +18,8 @@ public class CLCProcessor implements CLCProcessorConstants {
 	public static void main(String[] args) throws Exception {
 		File osmXmlFile = new File(OSM_VILLAGEBORDERS);
 		CLCProcessor clcProcessor = new CLCProcessor();
-		//clcProcessor.villagePolygonHelper.findWayNames(osmXmlFile);
+		clcProcessor.villagePolygonHelper.findWayNames(osmXmlFile);
 		osmXmlFile = new File(OSM_CLCDATA);
-		clcProcessor.clcPolygonHelper.findWayNames(osmXmlFile);
+		//clcProcessor.clcPolygonHelper.findWayNames(osmXmlFile);
 	}
 }
