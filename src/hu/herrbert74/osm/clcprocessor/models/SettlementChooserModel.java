@@ -1,4 +1,9 @@
-package hu.herrbert74.osm.clcprocessor.villagepolygon;
+package hu.herrbert74.osm.clcprocessor.models;
+
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageNode;
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillagePolygon;
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageRelation;
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageWay;
 
 import java.io.File;
 import java.io.IOException;
@@ -15,20 +20,14 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-public class VillagePolygonHelper {
-	/*
-	 * ArrayList<VillageNode> villageNodes = new ArrayList<VillageNode>();
-	 * ArrayList<VillageRelation> villageRelations = new
-	 * ArrayList<VillageRelation>(); ArrayList<VillageWay> villageWays = new
-	 * ArrayList<VillageWay>();
-	 */
+public class SettlementChooserModel extends java.util.Observable {
 	ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
 	Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
 	Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>();
 	Map<String, VillageRelation> villageRelationsMap = new HashMap<String, VillageRelation>();
 
-	public void findWayNames(File file) throws ParserConfigurationException,
-			SAXException, IOException {
+	public void read(File file)
+			throws ParserConfigurationException, SAXException, IOException {
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
 
@@ -44,11 +43,10 @@ public class VillagePolygonHelper {
 		parser.parse(file, nodesHandler);
 		villageNodesMap = nodesHandler.getNodes();
 
-		villagePolygons = createVillagePolygons();
+		createVillagePolygons();
 	}
 
-	private ArrayList<VillagePolygon> createVillagePolygons() {
-		ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
+	private void createVillagePolygons() {
 		int z = 0;
 		for (VillageRelation vr : villageRelationsMap.values()) {
 			System.out.println("polygon: " + Integer.toString(++z) + "/"
@@ -59,37 +57,40 @@ public class VillagePolygonHelper {
 			do {
 				int way = getNextVillageWay(vr, villageWaysMap, lastNode);
 				VillageWay vw = villageWaysMap.get(way);
-				boolean areNodesForward = (lastNode == 0 || vw.members.get(0) == lastNode);
+				boolean areNodesForward = (lastNode == 0 || vw.getMembers().get(0) == lastNode);
 				if (areNodesForward) {
-					for (int i = 0; i < vw.members.size(); i++) {
-						vp.addVillageNode(villageNodesMap.get(vw.members.get(i)));
-						lastNode = vp.villageNodes.get(vp.villageNodes.size() - 1).getNodeId();
+					for (int i = 0; i < vw.getMembers().size(); i++) {
+						vp.addVillageNode(villageNodesMap.get(vw.getMembers().get(i)));
+						lastNode = vp.getVillageNodes().get(
+								vp.getVillageNodes().size() - 1).getNodeId();
 					}
-				}else {
-					for (int i = vw.members.size() -1; i >= 0; i--) {
-						vp.addVillageNode(villageNodesMap.get(vw.members.get(i)));
-						lastNode = vp.villageNodes.get(vp.villageNodes.size() - 1).getNodeId();
+				} else {
+					for (int i = vw.getMembers().size() - 1; i >= 0; i--) {
+						vp.addVillageNode(villageNodesMap.get(vw.getMembers().get(i)));
+						lastNode = vp.getVillageNodes().get(
+								vp.getVillageNodes().size() - 1).getNodeId();
 					}
 				}
-				vp.villageNodes.remove(vp.villageNodes.size()-1);
-				vr.members.remove(vr.members.indexOf(vw.getWayId()));
-			} while (vr.members.size() > 0);
+				vp.getVillageNodes().remove(vp.getVillageNodes().size() - 1);
+				vr.getMembers().remove(vr.getMembers().indexOf(vw.getWayId()));
+			} while (vr.getMembers().size() > 0);
 			villagePolygons.add(vp);
 		}
-		return villagePolygons;
+		setChanged();
+		notifyObservers(villagePolygons);
 	}
 
 	private int getNextVillageWay(VillageRelation vr,
 			Map<Integer, VillageWay> villageWaysMap2, int lastVillageNode) {
 		if (lastVillageNode == 0) {
-			return vr.members.get(0);
+			return vr.getMembers().get(0);
 		} else {
-			for (int member : vr.members) {
-				if (villageWaysMap2.get(member).members
+			for (int member : vr.getMembers()) {
+				if (villageWaysMap2.get(member).getMembers()
 						.contains(lastVillageNode)) {
 					return member;
-				}else{
-					return vr.members.get(0);
+				} else {
+					return vr.getMembers().get(0);
 				}
 			}
 		}
@@ -123,7 +124,7 @@ public class VillagePolygonHelper {
 				throws SAXException {
 			eleStack.pop();
 			if ("node".equals(qName)) {
-				villageNodesMap.put((Integer) vn.nodeId, vn);
+				villageNodesMap.put((Integer) vn.getNodeId(), vn);
 				vn = new VillageNode();
 			}
 
@@ -163,7 +164,7 @@ public class VillagePolygonHelper {
 				throws SAXException {
 			eleStack.pop();
 			if ("relation".equals(qName)) {
-				villageRelationsMap.put(vr.name, vr);
+				villageRelationsMap.put(vr.getName(), vr);
 				vr = new VillageRelation();
 			}
 		}
@@ -198,7 +199,7 @@ public class VillagePolygonHelper {
 				throws SAXException {
 			eleStack.pop();
 			if ("way".equals(qName)) {
-				villageWaysMap.put(vw.id, vw);
+				villageWaysMap.put(vw.getWayId(), vw);
 				vw = new VillageWay();
 			}
 
