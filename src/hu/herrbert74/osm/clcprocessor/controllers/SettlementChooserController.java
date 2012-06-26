@@ -61,6 +61,7 @@ public class SettlementChooserController implements
 		case "REMOVE":
 			scView.settlementList.remove(scView.settlementList
 					.getSelectionIndex());
+			addNeighbours();
 			break;
 		default:
 			break;
@@ -68,6 +69,7 @@ public class SettlementChooserController implements
 	}
 
 	private void addNeighbours() {
+		scView.neighbourList.removeAll();
 		for(String z : scView.settlementList.getItems()){
 			VillagePolygon vpFound = new VillagePolygon();
 			for(VillagePolygon vp: scModel.villagePolygons){

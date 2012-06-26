@@ -41,7 +41,7 @@ public class SettlementChooserView implements java.util.Observer {
 	public SettlementChooserView() {
 		display = new Display();
 		shell = new Shell(display);
-		Rectangle r = Display.getCurrent().getBounds();
+		Rectangle r = display.getPrimaryMonitor().getBounds();// Display.getCurrent().getBounds();
 		shell.setBounds((int)(r.width*0.1), (int)(r.height*0.1),(int)(r.width*0.8), (int)(r.height*0.8));
 		Point shellSize = shell.getSize();
 				
