@@ -35,8 +35,9 @@ public class SettlementChooserView implements java.util.Observer {
 	Button createCLCButton, addButton, removeButton;
 	public Text searchText;
 	Label progressLabel, searchLabel;
-	public ScrolledComposite polygonListSC, settlementListSC, neighbourListSC;
-	public List polygonList, settlementList, neighbourList;
+	public ScrolledComposite polygonListSC, settlementListSC, neighbourListSC, excludedNeighbourListSC;
+	public List polygonList, settlementList, neighbourList, excludedNeighbourList;
+	private Button excludeButton;
 
 	public SettlementChooserView() {
 		display = new Display();
@@ -44,7 +45,7 @@ public class SettlementChooserView implements java.util.Observer {
 		Rectangle r = Display.getCurrent().getBounds();
 		shell.setBounds((int)(r.width*0.1), (int)(r.height*0.1),(int)(r.width*0.8), (int)(r.height*0.8));
 		Point shellSize = shell.getSize();
-				
+		shell.setMinimumSize(600, 600);
 		FormLayout layout = new FormLayout();
 		shell.setLayout(layout);
 		shell.setText("CLC processor");
@@ -57,7 +58,6 @@ public class SettlementChooserView implements java.util.Observer {
 		polygonListSC.setExpandHorizontal(true);
 		polygonListSC.setExpandVertical(true);
 		
-
 		polygonList.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseScrolled(MouseEvent e) {
@@ -121,6 +121,29 @@ public class SettlementChooserView implements java.util.Observer {
 			}
 		});
 		
+		excludedNeighbourListSC.setContent(excludedNeighbourList);
+		excludedNeighbourListSC.setExpandHorizontal(true);
+		excludedNeighbourListSC.setExpandVertical(true);
+
+		excludedNeighbourList.addMouseWheelListener(new MouseWheelListener() {
+			@Override
+			public void mouseScrolled(MouseEvent e) {
+				int listItemHeight = excludedNeighbourList.computeSize(SWT.DEFAULT, SWT.DEFAULT).y
+						/ excludedNeighbourList.getItemCount();
+				if (e.count == -3) {
+					int topIndex = excludedNeighbourList.getSelectionIndex();
+					excludedNeighbourList.setSelection(++topIndex);
+					excludedNeighbourListSC.setOrigin(excludedNeighbourListSC.getOrigin().x, excludedNeighbourListSC.getOrigin().y
+							+ listItemHeight);
+				} else if (e.count == 3) {
+					int topIndex = excludedNeighbourList.getSelectionIndex();
+					excludedNeighbourList.setSelection(--topIndex);
+					excludedNeighbourListSC.setOrigin(excludedNeighbourListSC.getOrigin().x, excludedNeighbourListSC.getOrigin().y
+							- listItemHeight);
+				}
+			}
+		});
+		
 	}
 
 	private void instantiateWidgets() {
@@ -136,6 +159,10 @@ public class SettlementChooserView implements java.util.Observer {
 		removeButton.setText("Remove");
 		removeButton.setData(new String("REMOVE"));
 		
+		excludeButton = new Button(shell, SWT.PUSH);
+		excludeButton.setText("Exclude");
+		excludeButton.setData(new String("EXCLUDE"));
+		
 		searchText = new Text(shell, SWT.BORDER);
 		
 		progressLabel = new Label(shell, SWT.WRAP);
@@ -146,10 +173,15 @@ public class SettlementChooserView implements java.util.Observer {
 		polygonListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
 		settlementListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
 		neighbourListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
+		excludedNeighbourListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
 		polygonList = new List(polygonListSC, SWT.SINGLE);
 		polygonList.setData(new String("POLYGONLIST"));
 		settlementList = new List(settlementListSC, SWT.SINGLE);
+		settlementList.setData(new String("SETTLEMENTLIST"));
 		neighbourList = new List(neighbourListSC, SWT.SINGLE);
+		neighbourList.setData(new String("NEIGHBOURLIST"));
+		excludedNeighbourList = new List(excludedNeighbourListSC, SWT.SINGLE);
+		excludedNeighbourList.setData(new String("EXCLUDEDNEIGHBOURLIST"));
 	}
 
 	private void layoutWidgets(Point shellSize) {
@@ -167,6 +199,11 @@ public class SettlementChooserView implements java.util.Observer {
 		removeData.left = new FormAttachment(45);
 		removeData.top = new FormAttachment(55);
 		removeButton.setLayoutData(removeData);
+		
+		FormData excludeData = new FormData((int) (shellSize.x * 0.05), 30);
+		excludeData.left = new FormAttachment(75);
+		excludeData.top = new FormAttachment(55);
+		excludeButton.setLayoutData(excludeData);
 		
 		FormData progressData = new FormData((int) (shellSize.x * 0.1), 30);
 		progressData.left = new FormAttachment(5);
@@ -205,8 +242,15 @@ public class SettlementChooserView implements java.util.Observer {
 		neighbourListData.top = new FormAttachment(45);
 		neighbourListData.left = new FormAttachment(60);
 		neighbourListData.bottom = new FormAttachment(80);
-		neighbourListData.right = new FormAttachment(95);
+		neighbourListData.right = new FormAttachment(72);
 		neighbourListSC.setLayoutData(neighbourListData);
+		
+		FormData excludedNeighbourListData = new FormData();
+		excludedNeighbourListData.top = new FormAttachment(45);
+		excludedNeighbourListData.left = new FormAttachment(82);
+		excludedNeighbourListData.bottom = new FormAttachment(80);
+		excludedNeighbourListData.right = new FormAttachment(95);
+		excludedNeighbourListSC.setLayoutData(excludedNeighbourListData);
 	}
 
 	@Override
@@ -228,7 +272,11 @@ public class SettlementChooserView implements java.util.Observer {
 		createCLCButton.addMouseListener(controller);
 		addButton.addMouseListener(controller);
 		removeButton.addMouseListener(controller);
+		excludeButton.addMouseListener(controller);
 		polygonList.addMouseMoveListener(controller);
+		polygonList.addMouseListener(controller);
 		searchText.addKeyListener(controller);
+		settlementList.addMouseListener(controller);
+		neighbourList.addMouseListener(controller);
 	}
 }
