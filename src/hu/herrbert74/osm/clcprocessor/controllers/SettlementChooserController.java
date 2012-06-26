@@ -2,6 +2,8 @@ package hu.herrbert74.osm.clcprocessor.controllers;
 
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageNode;
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillagePolygon;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
@@ -21,12 +23,10 @@ public class SettlementChooserController implements
 	}
 
 	public void addModel(SettlementChooserModel m) {
-		System.out.println("Controller: adding model");
 		this.scModel = m;
 	}
 
 	public void addView(SettlementChooserView v) {
-		System.out.println("Controller: adding view");
 		this.scView = v;
 	}
 
@@ -53,8 +53,10 @@ public class SettlementChooserController implements
 					}
 				}
 			}
-			if (ok)
+			if (ok) {
 				scView.settlementList.add(addition);
+			}
+			addNeighbours();
 			break;
 		case "REMOVE":
 			scView.settlementList.remove(scView.settlementList
@@ -62,6 +64,24 @@ public class SettlementChooserController implements
 			break;
 		default:
 			break;
+		}
+	}
+
+	private void addNeighbours() {
+		for(String z : scView.settlementList.getItems()){
+			VillagePolygon vpFound = new VillagePolygon();
+			for(VillagePolygon vp: scModel.villagePolygons){
+				if(vp.getName().equals(z)){
+					vpFound = vp;
+				}
+			}
+			for(VillageNode vn : vpFound.getVillageNodes()){
+				for(VillagePolygon vp: scModel.villagePolygons){
+					if(vp.getVillageNodes().contains(vn) && scView.settlementList.indexOf(vp.getName()) == -1 && scView.neighbourList.indexOf(vp.getName()) == -1){
+						scView.neighbourList.add(vp.getName());
+					}
+				}
+			}
 		}
 	}
 

@@ -35,8 +35,8 @@ public class SettlementChooserView implements java.util.Observer {
 	Button createCLCButton, addButton, removeButton;
 	public Text searchText;
 	Label progressLabel, searchLabel;
-	public ScrolledComposite polygonListSC, settlementListSC;
-	public List polygonList, settlementList;
+	public ScrolledComposite polygonListSC, settlementListSC, neighbourListSC;
+	public List polygonList, settlementList, neighbourList;
 
 	public SettlementChooserView() {
 		display = new Display();
@@ -98,6 +98,29 @@ public class SettlementChooserView implements java.util.Observer {
 			}
 		});
 		
+		neighbourListSC.setContent(neighbourList);
+		neighbourListSC.setExpandHorizontal(true);
+		neighbourListSC.setExpandVertical(true);
+
+		neighbourList.addMouseWheelListener(new MouseWheelListener() {
+			@Override
+			public void mouseScrolled(MouseEvent e) {
+				int listItemHeight = neighbourList.computeSize(SWT.DEFAULT, SWT.DEFAULT).y
+						/ neighbourList.getItemCount();
+				if (e.count == -3) {
+					int topIndex = neighbourList.getSelectionIndex();
+					neighbourList.setSelection(++topIndex);
+					neighbourListSC.setOrigin(neighbourListSC.getOrigin().x, neighbourListSC.getOrigin().y
+							+ listItemHeight);
+				} else if (e.count == 3) {
+					int topIndex = neighbourList.getSelectionIndex();
+					neighbourList.setSelection(--topIndex);
+					neighbourListSC.setOrigin(neighbourListSC.getOrigin().x, neighbourListSC.getOrigin().y
+							- listItemHeight);
+				}
+			}
+		});
+		
 	}
 
 	private void instantiateWidgets() {
@@ -122,9 +145,11 @@ public class SettlementChooserView implements java.util.Observer {
 
 		polygonListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
 		settlementListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
+		neighbourListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
 		polygonList = new List(polygonListSC, SWT.SINGLE);
 		polygonList.setData(new String("POLYGONLIST"));
 		settlementList = new List(settlementListSC, SWT.SINGLE);
+		neighbourList = new List(neighbourListSC, SWT.SINGLE);
 	}
 
 	private void layoutWidgets(Point shellSize) {
@@ -172,14 +197,20 @@ public class SettlementChooserView implements java.util.Observer {
 		FormData settlementListData = new FormData();
 		settlementListData.top = new FormAttachment(5);
 		settlementListData.left = new FormAttachment(60);
-		settlementListData.bottom = new FormAttachment(80);
+		settlementListData.bottom = new FormAttachment(40);
 		settlementListData.right = new FormAttachment(95);
 		settlementListSC.setLayoutData(settlementListData);
+		
+		FormData neighbourListData = new FormData();
+		neighbourListData.top = new FormAttachment(45);
+		neighbourListData.left = new FormAttachment(60);
+		neighbourListData.bottom = new FormAttachment(80);
+		neighbourListData.right = new FormAttachment(95);
+		neighbourListSC.setLayoutData(neighbourListData);
 	}
 
 	@Override
 	public void update(Observable o, Object arg) {
-		System.out.println("notified");
 		if(arg instanceof ArrayList<?>){
 			ArrayList<VillagePolygon> vps = (ArrayList<VillagePolygon>) arg;
 			Collections.sort(vps);
@@ -194,7 +225,6 @@ public class SettlementChooserView implements java.util.Observer {
 	}
 
 	public void addController(SettlementChooserController controller) {
-		System.out.println("View      : adding controller");
 		createCLCButton.addMouseListener(controller);
 		addButton.addMouseListener(controller);
 		removeButton.addMouseListener(controller);
