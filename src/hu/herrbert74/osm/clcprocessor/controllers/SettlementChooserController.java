@@ -80,6 +80,7 @@ public class SettlementChooserController implements
 						.getSelectionIndex());
 				addNeighbours();
 			}
+			addNeighbours();
 			break;
 		case "EXCLUDE":
 			if (scView.neighbourList.getItemCount() > scView.neighbourList
