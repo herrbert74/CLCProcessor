@@ -22,7 +22,7 @@ import org.xml.sax.helpers.DefaultHandler;
 
 public class SettlementChooserModel extends java.util.Observable {
 	public ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
-	Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
+	public Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
 	Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>();
 	Map<String, VillageRelation> villageRelationsMap = new HashMap<String, VillageRelation>();
 

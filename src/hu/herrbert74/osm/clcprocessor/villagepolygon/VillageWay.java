@@ -23,4 +23,14 @@ public class VillageWay {
 	public void addMember(Integer member) {
 		members.add(member);
 	}
+	
+	public boolean containsNode(VillageNode vn){
+		boolean result = false;
+		for(int nodeIDToCompare : members){
+			if(vn.getNodeId() == nodeIDToCompare){
+				result = true;
+			}
+		}
+		return result;
+	}
 }

@@ -4,6 +4,10 @@ import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
 import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageNode;
 import hu.herrbert74.osm.clcprocessor.villagepolygon.VillagePolygon;
+import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageWay;
+
+import java.util.ArrayList;
+import java.util.Collection;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
@@ -92,9 +96,99 @@ public class SettlementChooserController implements
 						.getSelectionIndex());
 			}
 			break;
+		case "CREATECLC":
+			createCLC();	
+			break;
 		default:
 			break;
 		}
+	}
+
+	private void createCLC() {
+		ArrayList<VillageNode> borderPolygon = createBorderPolygon();
+		int z = borderPolygon.size();
+		/*ArrayList<VillageNode> NeighBourBorderPolygon = createNeighbourBorderPolygon();
+		findMainPoints();
+		findNeighbourPoints();
+		findWays();*/
+	}
+
+	private ArrayList<VillageNode> createBorderPolygon() {
+		ArrayList<VillagePolygon> aggregatePolygonMembers = new ArrayList<VillagePolygon>();
+		ArrayList<VillageNode> intersections = new ArrayList<VillageNode>();
+		ArrayList<VillageWay> ways = new ArrayList<VillageWay>();
+		for(int i = 0; i < scModel.villagePolygons.size(); i++) {
+			for(String village: scView.settlementList.getItems()) {
+				if(scModel.villagePolygons.get(i).getName().equals(village)){
+					aggregatePolygonMembers.add(scModel.villagePolygons.get(i));
+				}
+			}
+		}
+		intersections = findIntersections(aggregatePolygonMembers);
+		for(VillagePolygon vp : aggregatePolygonMembers){
+			ArrayList<VillageWay> splitWays = vp.split(intersections);
+			for(VillageWay vw : splitWays){
+				if(vw.getMembers().size() > 2){
+					ways.add(vw);
+				}
+			}
+			
+		}
+		ArrayList<VillageNode> result = concatenateWays(ways);
+		return result;
+	}
+
+	private ArrayList<VillageNode> concatenateWays(ArrayList<VillageWay> ways) {
+		ArrayList<VillageNode> result = new ArrayList<VillageNode>(); 
+		do{
+			if(result.size() == 0){
+				for(int i = 0; i < ways.get(0).getMembers().size(); i++) {
+					result.add(scModel.villageNodesMap.get(ways.get(0).getMembers().get(i)));
+					ways.remove(0);
+				}
+			}else{
+				int i = -1;
+				VillageNode lastNode = result.get(result.size()-1);
+				do{
+					i++;
+					if(ways.get(i).containsNode(lastNode)){
+						result.remove(result.size()-1);
+						result.addAll(getVillageNodes(ways.get(i)));
+					}
+				}while(!ways.get(i).containsNode(lastNode));
+			}
+		}while(ways.size() > 0);
+		return result;
+	}
+
+	private Collection<? extends VillageNode> getVillageNodes(VillageWay villageWay) {
+		ArrayList<VillageNode> result = new ArrayList<VillageNode>(); 
+		for(int vnID : villageWay.getMembers()){
+			result.add(scModel.villageNodesMap.get(vnID));
+		}
+		return result;
+	}
+
+	private ArrayList<VillageNode> findIntersections(ArrayList<VillagePolygon> aggregatePolygonMembers) {
+		ArrayList<VillageNode> result = new ArrayList<VillageNode>();
+		for(VillagePolygon vp : aggregatePolygonMembers ){
+			for(VillageNode vn : vp.getVillageNodes()){
+				boolean isThisNodeUnique = true;
+				for(VillagePolygon vpToCompare : aggregatePolygonMembers ){
+					if(!vp.equals(vpToCompare)){
+						for(VillageNode vnToCompare : vpToCompare.getVillageNodes()){
+							if(vn.getNodeId() == vnToCompare.getNodeId()){
+								isThisNodeUnique = false;
+							}
+						}
+					}
+				}
+				if(isThisNodeUnique){
+					result.add(vn);
+				}
+			}
+		}
+		return result;
 	}
 
 	private void checkNeighbours(List list) {
