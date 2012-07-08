@@ -1,7 +1,15 @@
-package hu.herrbert74.osm.clcprocessor.villagepolygon;
+package hu.herrbert74.osm.clcprocessor.osmentities;
 
-public class VillageNode {
+public class CustomNode {
 	int nodeId;
+	public CustomNode(double lon, double lat){
+		this.lon = lon;
+		this.lat = lat;
+	}
+	
+	public CustomNode(){
+	}
+	
 	public int getNodeId() {
 		return nodeId;
 	}

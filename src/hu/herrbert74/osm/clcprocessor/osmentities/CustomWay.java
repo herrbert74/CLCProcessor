@@ -1,12 +1,12 @@
-package hu.herrbert74.osm.clcprocessor.villagepolygon;
+package hu.herrbert74.osm.clcprocessor.osmentities;
 
 import java.util.ArrayList;
 
-public class VillageWay {
+public class CustomWay {
 	int id;
 	ArrayList<Integer> members;	
 	
-	public VillageWay(){
+	public CustomWay(){
 		id = 0;
 		members = new ArrayList<Integer>();
 	}
@@ -24,7 +24,7 @@ public class VillageWay {
 		members.add(member);
 	}
 	
-	public boolean containsNode(VillageNode vn){
+	public boolean containsNode(CustomNode vn){
 		boolean result = false;
 		for(int nodeIDToCompare : members){
 			if(vn.getNodeId() == nodeIDToCompare){

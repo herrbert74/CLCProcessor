@@ -1,9 +1,10 @@
 package hu.herrbert74.osm.clcprocessor.models;
 
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageNode;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillagePolygon;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageRelation;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageWay;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelation;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
+import hu.herrbert74.osm.clcprocessor.utils.XMLFactory;
 
 import java.io.File;
 import java.io.IOException;
@@ -21,10 +22,10 @@ import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
 public class SettlementChooserModel extends java.util.Observable {
-	public ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
-	public Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
-	Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>();
-	Map<String, VillageRelation> villageRelationsMap = new HashMap<String, VillageRelation>();
+	public ArrayList<CustomPolygon> villagePolygons = new ArrayList<CustomPolygon>();
+	public Map<Integer, CustomNode> villageNodesMap = new HashMap<Integer, CustomNode>();
+	Map<Integer, CustomWay> villageWaysMap = new HashMap<Integer, CustomWay>();
+	Map<String, CustomRelation> villageRelationsMap = new HashMap<String, CustomRelation>();
 
 	public void read(File file)
 			throws ParserConfigurationException, SAXException, IOException {
@@ -48,24 +49,34 @@ public class SettlementChooserModel extends java.util.Observable {
 
 	private void createVillagePolygons() {
 		int z = 0;
-		for (VillageRelation vr : villageRelationsMap.values()) {
+		for (CustomRelation vr : villageRelationsMap.values()) {
 			System.out.println("polygon: " + Integer.toString(++z) + "/"
 					+ Integer.toString(villageRelationsMap.size()));
-			VillagePolygon vp = new VillagePolygon();
+			CustomPolygon vp = new CustomPolygon();
 			vp.setName(vr.getName());
+			if(vr.getName().equals("Dunaszentpál")){
+				vp.setName(vr.getName());
+			}
+			CustomNode firstNode = new CustomNode();
 			int lastNode = 0;
 			do {
 				int way = getNextVillageWay(vr, villageWaysMap, lastNode);
-				VillageWay vw = villageWaysMap.get(way);
+				CustomWay vw = villageWaysMap.get(way);
 				boolean areNodesForward = (lastNode == 0 || vw.getMembers().get(0) == lastNode);
 				if (areNodesForward) {
 					for (int i = 0; i < vw.getMembers().size(); i++) {
+						if(firstNode.getNodeId() == 0){
+							firstNode = villageNodesMap.get(vw.getMembers().get(i));
+						}
 						vp.addVillageNode(villageNodesMap.get(vw.getMembers().get(i)));
 						lastNode = vp.getVillageNodes().get(
 								vp.getVillageNodes().size() - 1).getNodeId();
 					}
 				} else {
 					for (int i = vw.getMembers().size() - 1; i >= 0; i--) {
+						if(firstNode.getNodeId() == 0){
+							firstNode = villageNodesMap.get(vw.getMembers().get(i));
+						}
 						vp.addVillageNode(villageNodesMap.get(vw.getMembers().get(i)));
 						lastNode = vp.getVillageNodes().get(
 								vp.getVillageNodes().size() - 1).getNodeId();
@@ -74,14 +85,15 @@ public class SettlementChooserModel extends java.util.Observable {
 				vp.getVillageNodes().remove(vp.getVillageNodes().size() - 1);
 				vr.getMembers().remove(vr.getMembers().indexOf(vw.getWayId()));
 			} while (vr.getMembers().size() > 0);
+			vp.addVillageNode(firstNode);
 			villagePolygons.add(vp);
 		}
 		setChanged();
 		notifyObservers(villagePolygons);
 	}
 
-	private int getNextVillageWay(VillageRelation vr,
-			Map<Integer, VillageWay> villageWaysMap2, int lastVillageNode) {
+	private int getNextVillageWay(CustomRelation vr,
+			Map<Integer, CustomWay> villageWaysMap2, int lastVillageNode) {
 		if (lastVillageNode == 0) {
 			return vr.getMembers().get(0);
 		} else {
@@ -89,21 +101,20 @@ public class SettlementChooserModel extends java.util.Observable {
 				if (villageWaysMap2.get(member).getMembers()
 						.contains(lastVillageNode)) {
 					return member;
-				} else {
-					return vr.getMembers().get(0);
 				}
 			}
+			//Return the first member if nothing found. Have to be an exclave!
+			return vr.getMembers().get(0);
 		}
-		return 0;
 	}
 
 	private static class OsmNodesHandler extends DefaultHandler {
-		Map<Integer, VillageNode> villageNodesMap = new HashMap<Integer, VillageNode>();
-		private final ArrayList<VillageNode> villageNodes = new ArrayList<VillageNode>();
+		Map<Integer, CustomNode> villageNodesMap = new HashMap<Integer, CustomNode>();
+		private final ArrayList<CustomNode> villageNodes = new ArrayList<CustomNode>();
 		private final Stack<String> eleStack = new Stack<String>();
-		private VillageNode vn = new VillageNode();
+		private CustomNode vn = new CustomNode();
 
-		public Map<Integer, VillageNode> getNodes() {
+		public Map<Integer, CustomNode> getNodes() {
 			return villageNodesMap;
 		}
 
@@ -125,19 +136,19 @@ public class SettlementChooserModel extends java.util.Observable {
 			eleStack.pop();
 			if ("node".equals(qName)) {
 				villageNodesMap.put((Integer) vn.getNodeId(), vn);
-				vn = new VillageNode();
+				vn = new CustomNode();
 			}
 
 		}
 	}
 
 	private static class OsmRelationsHandler extends DefaultHandler {
-		Map<String, VillageRelation> villageRelationsMap = new HashMap<String, VillageRelation>();
-		private final ArrayList<VillageRelation> villageRelations = new ArrayList<VillageRelation>();
+		Map<String, CustomRelation> villageRelationsMap = new HashMap<String, CustomRelation>();
+		private final ArrayList<CustomRelation> villageRelations = new ArrayList<CustomRelation>();
 		private final Stack<String> eleStack = new Stack<String>();
-		private VillageRelation vr = new VillageRelation();
+		private CustomRelation vr = new CustomRelation();
 
-		public Map<String, VillageRelation> getRelations() {
+		public Map<String, CustomRelation> getRelations() {
 			return villageRelationsMap;
 		}
 
@@ -165,18 +176,18 @@ public class SettlementChooserModel extends java.util.Observable {
 			eleStack.pop();
 			if ("relation".equals(qName)) {
 				villageRelationsMap.put(vr.getName(), vr);
-				vr = new VillageRelation();
+				vr = new CustomRelation();
 			}
 		}
 	}
 
 	private static class OsmWaysHandler extends DefaultHandler {
-		Map<Integer, VillageWay> villageWaysMap = new HashMap<Integer, VillageWay>();
-		private final ArrayList<VillageWay> villageWays = new ArrayList<VillageWay>();
+		Map<Integer, CustomWay> villageWaysMap = new HashMap<Integer, CustomWay>();
+		private final ArrayList<CustomWay> villageWays = new ArrayList<CustomWay>();
 		private final Stack<String> eleStack = new Stack<String>();
-		private VillageWay vw = new VillageWay();
+		private CustomWay vw = new CustomWay();
 
-		public Map<Integer, VillageWay> getWays() {
+		public Map<Integer, CustomWay> getWays() {
 			return villageWaysMap;
 		}
 
@@ -200,7 +211,7 @@ public class SettlementChooserModel extends java.util.Observable {
 			eleStack.pop();
 			if ("way".equals(qName)) {
 				villageWaysMap.put(vw.getWayId(), vw);
-				vw = new VillageWay();
+				vw = new CustomWay();
 			}
 
 		}

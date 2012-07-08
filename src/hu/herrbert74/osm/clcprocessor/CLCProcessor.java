@@ -2,8 +2,8 @@ package hu.herrbert74.osm.clcprocessor;
 
 import hu.herrbert74.osm.clcprocessor.controllers.SettlementChooserController;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillagePolygon;
 
 import java.io.File;
 import java.io.IOException;
@@ -33,7 +33,7 @@ public class CLCProcessor implements CLCProcessorConstants {
 	
 	static int canvasStyle = SWT.NO_REDRAW_RESIZE | SWT.V_SCROLL;
 
-	ArrayList<VillagePolygon> villagePolygons = new ArrayList<VillagePolygon>();
+	ArrayList<CustomPolygon> villagePolygons = new ArrayList<CustomPolygon>();
 	
 	public CLCProcessor() {
 		SettlementChooserModel scModel 	= new SettlementChooserModel();
@@ -57,8 +57,6 @@ public class CLCProcessor implements CLCProcessorConstants {
 		//and Model, 
 		//this was only needed when the view inits the model
 		//myView.addModel(myModel);
-
-		
 		
 		while (!scView.shell.isDisposed()) {
 			if (!scView.display.readAndDispatch()) {

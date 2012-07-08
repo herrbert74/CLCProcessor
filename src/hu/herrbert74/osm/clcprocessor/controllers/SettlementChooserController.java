@@ -1,20 +1,38 @@
 package hu.herrbert74.osm.clcprocessor.controllers;
 
+import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
+import hu.herrbert74.osm.clcprocessor.clcpolygon.CLCNode;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
+import hu.herrbert74.osm.clcprocessor.utils.Functions;
+import hu.herrbert74.osm.clcprocessor.utils.XMLFactory;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageNode;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillagePolygon;
-import hu.herrbert74.osm.clcprocessor.villagepolygon.VillageWay;
 
+import java.io.File;
+import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.HashMap;
+import java.util.Map;
+import java.util.Stack;
+
+import javax.xml.parsers.ParserConfigurationException;
+import javax.xml.parsers.SAXParser;
+import javax.xml.parsers.SAXParserFactory;
 
 import org.eclipse.swt.SWT;
 import org.eclipse.swt.events.KeyEvent;
 import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.widgets.List;
+import org.xml.sax.Attributes;
+import org.xml.sax.SAXException;
+import org.xml.sax.helpers.DefaultHandler;
 
-public class SettlementChooserController implements
+import com.vividsolutions.jts.util.CollectionUtil.Function;
+
+public class SettlementChooserController implements CLCProcessorConstants,
 		org.eclipse.swt.events.MouseListener,
 		org.eclipse.swt.events.MouseWheelListener,
 		org.eclipse.swt.events.MouseMoveListener,
@@ -54,8 +72,8 @@ public class SettlementChooserController implements
 		case "SETTLEMENTLIST":
 			int z = scView.settlementList.getItemCount();
 			if (scView.settlementList.getItemCount() > scView.settlementList
-					.getSelectionIndex() && scView.settlementList
-					.getSelectionIndex() != -1) {
+					.getSelectionIndex()
+					&& scView.settlementList.getSelectionIndex() != -1) {
 				scView.settlementList.remove(scView.settlementList
 						.getSelectionIndex());
 				addNeighbours();
@@ -66,7 +84,6 @@ public class SettlementChooserController implements
 		}
 	}
 
-	
 	@Override
 	public void mouseDown(MouseEvent e) {
 		String dataString = (String) e.widget.getData();
@@ -78,8 +95,8 @@ public class SettlementChooserController implements
 			break;
 		case "REMOVE":
 			if (scView.settlementList.getItemCount() > scView.settlementList
-					.getSelectionIndex() && scView.settlementList
-					.getSelectionIndex() != -1) {
+					.getSelectionIndex()
+					&& scView.settlementList.getSelectionIndex() != -1) {
 				scView.settlementList.remove(scView.settlementList
 						.getSelectionIndex());
 				addNeighbours();
@@ -88,16 +105,16 @@ public class SettlementChooserController implements
 			break;
 		case "EXCLUDE":
 			if (scView.neighbourList.getItemCount() > scView.neighbourList
-					.getSelectionIndex() && scView.neighbourList
-					.getSelectionIndex() != -1) {
-				scView.excludedNeighbourList.add(scView.neighbourList.getItem(
-						scView.neighbourList.getSelectionIndex()));
+					.getSelectionIndex()
+					&& scView.neighbourList.getSelectionIndex() != -1) {
+				scView.excludedNeighbourList.add(scView.neighbourList
+						.getItem(scView.neighbourList.getSelectionIndex()));
 				scView.neighbourList.remove(scView.neighbourList
 						.getSelectionIndex());
 			}
 			break;
 		case "CREATECLC":
-			createCLC();	
+			createCLC();
 			break;
 		default:
 			break;
@@ -105,85 +122,187 @@ public class SettlementChooserController implements
 	}
 
 	private void createCLC() {
-		ArrayList<VillageNode> borderPolygon = createBorderPolygon();
-		int z = borderPolygon.size();
-		/*ArrayList<VillageNode> NeighBourBorderPolygon = createNeighbourBorderPolygon();
-		findMainPoints();
-		findNeighbourPoints();
-		findWays();*/
+		ArrayList<CustomNode> borderPolygon = createBorderPolygon(extractPolygonsForBorder());
+		XMLFactory.writePolygon(borderPolygon, "abda_out.osm");
+		ArrayList<CustomNode> neighbourPolygon = createBorderPolygon(extractNeighbourPolygon());
+		XMLFactory.writePolygon(neighbourPolygon, "abda_neighbours.osm");
+		Map<Integer, CustomNode> clcNodes = new HashMap<Integer, CustomNode>();
+		try {
+			clcNodes = readNodes(new File(OSM_CLCDATA), borderPolygon);
+		} catch (ParserConfigurationException | SAXException | IOException e) {
+			e.printStackTrace();
+		}
+		scView.progressLabel.setText("Created CLC");
+		/*
+		 * ArrayList<VillageNode> NeighBourBorderPolygon =
+		 * createNeighbourBorderPolygon(); findMainPoints();
+		 * findNeighbourPoints(); findWays();
+		 */
 	}
 
-	private ArrayList<VillageNode> createBorderPolygon() {
-		ArrayList<VillagePolygon> aggregatePolygonMembers = new ArrayList<VillagePolygon>();
-		ArrayList<VillageNode> intersections = new ArrayList<VillageNode>();
-		ArrayList<VillageWay> ways = new ArrayList<VillageWay>();
-		for(int i = 0; i < scModel.villagePolygons.size(); i++) {
-			for(String village: scView.settlementList.getItems()) {
-				if(scModel.villagePolygons.get(i).getName().equals(village)){
-					aggregatePolygonMembers.add(scModel.villagePolygons.get(i));
-				}
-			}
+	public Map<Integer, CustomNode> readNodes(File file, ArrayList<CustomNode> polygon)
+			throws ParserConfigurationException, SAXException, IOException {
+		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
+		SAXParser parser = parserFactory.newSAXParser();
+		Map<Integer, CustomNode> CLCNodesMap = new HashMap<Integer, CustomNode>();
+
+		/*
+		 * OsmRelationsHandler relationsHandler = new OsmRelationsHandler();
+		 * parser.parse(file, relationsHandler); villageRelationsMap =
+		 * relationsHandler.getRelations();
+		 * 
+		 * OsmWaysHandler waysHandler = new OsmWaysHandler(); parser.parse(file,
+		 * waysHandler); villageWaysMap = waysHandler.getWays();
+		 */
+
+		CLCNodesHandler nodesHandler = new CLCNodesHandler(polygon);
+		parser.parse(file, nodesHandler);
+		CLCNodesMap = nodesHandler.getNodes();
+
+		return CLCNodesMap;
+	}
+
+	private static class CLCNodesHandler extends DefaultHandler {
+		
+		ArrayList<CustomNode> polygon;
+		Map<Integer, CustomNode> villageNodesMap = new HashMap<Integer, CustomNode>();
+		private final ArrayList<CustomNode> villageNodes = new ArrayList<CustomNode>();
+		private final Stack<String> eleStack = new Stack<String>();
+		private CustomNode vn = new CustomNode();
+		boolean nodeSet = false;
+		
+		public CLCNodesHandler(ArrayList<CustomNode> polygon){
+			super();
+			this.polygon = polygon;
 		}
+		
+		public Map<Integer, CustomNode> getNodes() {
+			return villageNodesMap;
+		}
+
+		@Override
+		public void startElement(String uri, String localName, String qName,
+				Attributes attrs) throws SAXException {
+			if ("node".equals(qName) && Functions.isNodeInsidePolygon(polygon, new CustomNode(Double.parseDouble(attrs.getValue("lon")), Double.parseDouble(attrs.getValue("lat"))))) {
+				nodeSet = true;
+				vn.setNodeId(Integer.parseInt(attrs.getValue("id")));
+				vn.setLat(Double.parseDouble(attrs.getValue("lat")));
+				vn.setLon(Double.parseDouble(attrs.getValue("lon")));
+			}
+			eleStack.push(qName);
+
+		}
+
+		@Override
+		public void endElement(String uri, String localName, String qName)
+				throws SAXException {
+			eleStack.pop();
+			if ("node".equals(qName) && nodeSet) {
+				villageNodesMap.put((Integer) vn.getNodeId(), vn);
+				vn = new CustomNode();
+				nodeSet = false;
+			}
+
+		}
+	}
+
+	private ArrayList<CustomNode> createBorderPolygon(
+			ArrayList<CustomPolygon> aggregatePolygonMembers) {
+		ArrayList<CustomNode> intersections = new ArrayList<CustomNode>();
+		ArrayList<CustomWay> ways = new ArrayList<CustomWay>();
 		intersections = findIntersections(aggregatePolygonMembers);
-		for(VillagePolygon vp : aggregatePolygonMembers){
-			ArrayList<VillageWay> splitWays = vp.split(intersections);
-			for(VillageWay vw : splitWays){
-				if(vw.getMembers().size() > 2){
+		for (CustomPolygon vp : aggregatePolygonMembers) {
+			ArrayList<CustomWay> splitWays = vp.split(intersections);
+			for (CustomWay vw : splitWays) {
+				if (vw.getMembers().size() > 2) {
 					ways.add(vw);
 				}
 			}
-			
 		}
-		ArrayList<VillageNode> result = concatenateWays(ways);
+		ArrayList<CustomNode> result = concatenateWays(ways);
+		result.add(result.get(0));
 		return result;
 	}
 
-	private ArrayList<VillageNode> concatenateWays(ArrayList<VillageWay> ways) {
-		ArrayList<VillageNode> result = new ArrayList<VillageNode>(); 
-		do{
-			if(result.size() == 0){
-				for(int i = 0; i < ways.get(0).getMembers().size(); i++) {
-					result.add(scModel.villageNodesMap.get(ways.get(0).getMembers().get(i)));
-					ways.remove(0);
+	private ArrayList<CustomPolygon> extractPolygonsForBorder() {
+		ArrayList<CustomPolygon> aggregatePolygonMembers = new ArrayList<CustomPolygon>();
+		for (int i = 0; i < scModel.villagePolygons.size(); i++) {
+			for (String village : scView.settlementList.getItems()) {
+				if (scModel.villagePolygons.get(i).getName().equals(village)) {
+					aggregatePolygonMembers.add(scModel.villagePolygons.get(i));
+					// XMLFactory.writePolygon(scModel.villagePolygons.get(i).getVillageNodes(),
+					// scModel.villagePolygons.get(i).getName() + ".osm");
 				}
-			}else{
+			}
+		}
+		return aggregatePolygonMembers;
+	}
+
+	private ArrayList<CustomPolygon> extractNeighbourPolygon() {
+		ArrayList<CustomPolygon> result = new ArrayList<CustomPolygon>();
+		for (int i = 0; i < scModel.villagePolygons.size(); i++) {
+			for (String village : scView.neighbourList.getItems()) {
+				if (scModel.villagePolygons.get(i).getName().equals(village)) {
+					result.add(scModel.villagePolygons.get(i));
+					// XMLFactory.writePolygon(scModel.villagePolygons.get(i).getVillageNodes(),
+					// scModel.villagePolygons.get(i).getName() + ".osm");
+				}
+			}
+		}
+		return result;
+	}
+
+	private ArrayList<CustomNode> concatenateWays(ArrayList<CustomWay> ways) {
+		ArrayList<CustomNode> result = new ArrayList<CustomNode>();
+		do {
+			if (result.size() == 0) {
+				for (int i = 0; i < ways.get(0).getMembers().size(); i++) {
+					result.add(scModel.villageNodesMap.get(ways.get(0)
+							.getMembers().get(i)));
+				}
+				ways.remove(0);
+			} else {
 				int i = -1;
-				VillageNode lastNode = result.get(result.size()-1);
-				do{
+				CustomNode lastNode = result.get(result.size() - 1);
+				do {
 					i++;
-					if(ways.get(i).containsNode(lastNode)){
-						result.remove(result.size()-1);
+					if (ways.get(i).containsNode(lastNode)) {
+						result.remove(result.size() - 1);
 						result.addAll(getVillageNodes(ways.get(i)));
 					}
-				}while(!ways.get(i).containsNode(lastNode));
+				} while (!ways.get(i).containsNode(lastNode));
+				ways.remove(i);
 			}
-		}while(ways.size() > 0);
+		} while (ways.size() > 0);
 		return result;
 	}
 
-	private Collection<? extends VillageNode> getVillageNodes(VillageWay villageWay) {
-		ArrayList<VillageNode> result = new ArrayList<VillageNode>(); 
-		for(int vnID : villageWay.getMembers()){
+	private Collection<? extends CustomNode> getVillageNodes(
+			CustomWay villageWay) {
+		ArrayList<CustomNode> result = new ArrayList<CustomNode>();
+		for (int vnID : villageWay.getMembers()) {
 			result.add(scModel.villageNodesMap.get(vnID));
 		}
 		return result;
 	}
 
-	private ArrayList<VillageNode> findIntersections(ArrayList<VillagePolygon> aggregatePolygonMembers) {
-		ArrayList<VillageNode> result = new ArrayList<VillageNode>();
-		for(VillagePolygon vp : aggregatePolygonMembers ){
-			for(VillageNode vn : vp.getVillageNodes()){
+	private ArrayList<CustomNode> findIntersections(
+			ArrayList<CustomPolygon> aggregatePolygonMembers) {
+		ArrayList<CustomNode> result = new ArrayList<CustomNode>();
+		for (CustomPolygon vp : aggregatePolygonMembers) {
+			for (CustomNode vn : vp.getVillageNodes()) {
 				boolean isThisNodeUnique = true;
-				for(VillagePolygon vpToCompare : aggregatePolygonMembers ){
-					if(!vp.equals(vpToCompare)){
-						for(VillageNode vnToCompare : vpToCompare.getVillageNodes()){
-							if(vn.getNodeId() == vnToCompare.getNodeId()){
+				for (CustomPolygon vpToCompare : aggregatePolygonMembers) {
+					if (!vp.equals(vpToCompare)) {
+						for (CustomNode vnToCompare : vpToCompare
+								.getVillageNodes()) {
+							if (vn.getNodeId() == vnToCompare.getNodeId()) {
 								isThisNodeUnique = false;
 							}
 						}
 					}
 				}
-				if(isThisNodeUnique){
+				if (!isThisNodeUnique && !result.contains(vn)) {
 					result.add(vn);
 				}
 			}
@@ -209,25 +328,26 @@ public class SettlementChooserController implements
 	private void addNeighbours() {
 		scView.neighbourList.removeAll();
 		for (String z : scView.settlementList.getItems()) {
-			VillagePolygon vpFound = new VillagePolygon();
-			for (VillagePolygon vp : scModel.villagePolygons) {
+			CustomPolygon vpFound = new CustomPolygon();
+			for (CustomPolygon vp : scModel.villagePolygons) {
 				if (vp.getName().equals(z)) {
 					vpFound = vp;
 				}
 			}
-			for (VillageNode vn : vpFound.getVillageNodes()) {
-				for (VillagePolygon vp : scModel.villagePolygons) {
+			for (CustomNode vn : vpFound.getVillageNodes()) {
+				for (CustomPolygon vp : scModel.villagePolygons) {
 					if (vp.getVillageNodes().contains(vn)
 							&& scView.settlementList.indexOf(vp.getName()) == -1
 							&& scView.neighbourList.indexOf(vp.getName()) == -1
-							&& scView.excludedNeighbourList.indexOf(vp.getName()) == -1) {
+							&& scView.excludedNeighbourList.indexOf(vp
+									.getName()) == -1) {
 						scView.neighbourList.add(vp.getName());
 					}
 				}
 			}
 		}
 	}
-	
+
 	@Override
 	public void mouseUp(MouseEvent e) {
 	}

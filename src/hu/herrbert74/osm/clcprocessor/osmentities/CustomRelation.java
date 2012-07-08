@@ -1,12 +1,12 @@
-package hu.herrbert74.osm.clcprocessor.villagepolygon;
+package hu.herrbert74.osm.clcprocessor.osmentities;
 
 import java.util.ArrayList;
 
-public class VillageRelation {
+public class CustomRelation {
 	String name;
 	ArrayList<Integer> members;	
 	
-	public VillageRelation(){
+	public CustomRelation(){
 		name = "";
 		members = new ArrayList<Integer>();
 	}
