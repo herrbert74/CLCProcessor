@@ -1,8 +1,11 @@
 package hu.herrbert74.osm.clcprocessor.utils;
 
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelation;
+import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 
 public class Functions {
 
@@ -23,5 +26,27 @@ public class Functions {
 				c = !c;
 		}
 		return c;
+	}
+	
+	public static boolean wayContainsNode(CustomWay way, int node){
+		boolean wayContainsNode = false;
+		for(int nodeId:way.getMembers()){
+			if(nodeId == node){
+				wayContainsNode = true;
+			}
+		}
+		return wayContainsNode;
+	}
+	
+	public static int getParentRelation(CustomWay cw, HashMap<Integer, CustomRelation> crs){
+		int crId = -1;
+		for(CustomRelation cr: crs.values()){
+			for(int i = 0; i < cr.getMembers().size(); i++){
+				if(cr.getMembers().get(i).getRef() == cw.getWayId()){
+					crId = cr.getRelationId();
+				}
+			}
+		}
+		return crId;
 	}
 }

@@ -34,34 +34,33 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 
 	public ArrayList<CustomWay> split(ArrayList<CustomNode> intersections) {
 		ArrayList<CustomWay> result = new ArrayList<CustomWay>();
+		boolean buildingBorder = false;
 		CustomWay newWay = new CustomWay();
-		for (int i = 0; i < villageNodes.size() - 1; i++) {
-			CustomNode otherVillageNode = new CustomNode(); 
-			//Other node
-			otherVillageNode = villageNodes.get(i + 1);
-			//If either of the nodes is not an intersection, add the actual to the way
-			if(intersections.indexOf(villageNodes.get(i)) == -1 || intersections.indexOf(otherVillageNode) == -1){
+		for (int i = 0; i < villageNodes.size(); i++) {
+			if (intersections.indexOf(villageNodes.get(i)) == -1) {
 				newWay.addMember(villageNodes.get(i).getNodeId());
-				System.out.println("Node added: " + Integer.toString(villageNodes.get(i).getNodeId()));
-			}
-			//If both nodes are in intersections but the last one was not, add the actual
-			else if(i>0){
-				if(intersections.indexOf(villageNodes.get(i-1)) == -1){
+				buildingBorder = true;
+				// System.out.println("Node added: " +
+				// Integer.toString(villageNodes.get(i).getNodeId()));
+			} else {
+				if (buildingBorder) {
 					newWay.addMember(villageNodes.get(i).getNodeId());
-					System.out.println("Intersection node added: " + Integer.toString(villageNodes.get(i).getNodeId()));
+					result.add(newWay);
+					newWay = new CustomWay();
+				} else {
+					newWay = new CustomWay();
+					newWay.addMember(villageNodes.get(i).getNodeId());
 				}
-				
+				buildingBorder = false;
+				// System.out.println("Intersection node added: " +
+				// Integer.toString(villageNodes.get(i).getNodeId()));
 			}
-			//if it's the last node of the polygon or the last non-intersection node, close the way
-			if(((i == villageNodes.size() - 2) || 
-					(intersections.indexOf(villageNodes.get(i)) > -1 && intersections.indexOf(otherVillageNode) > -1)) 
-					&& newWay.getMembers().size() > 0){
-				result.add(newWay);
-				newWay = new CustomWay();
-				System.out.println("Way closed");
-			}
-			
 		}
+		if (newWay.getMembers().size() > 0) {
+			result.add(newWay);
+		}
+		// System.out.println("Way closed");
+
 		return result;
 	}
 }
