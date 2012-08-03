@@ -60,12 +60,7 @@ public class CustomRelation {
 		int overLappingWayId = -1;
 		// System.out.println("Way ID: " + Integer.toString(wayID));
 		CustomWay cw = clcMainWays.get(wayID);
-		if (id == -4856392) {
-			int u = 8;
-			int z = u;
-
-		}
-
+		
 		for (CustomRelationMember crm : getMembers()) {
 			CustomWay otherCw = clcMainWays.get(crm.getRef());
 			if (otherCw != null) {

@@ -43,9 +43,9 @@ public class CLCCreator implements CLCProcessorConstants {
 		this.scView = scView;
 		this.scModel = scModel;
 		ArrayList<CustomNode> borderPolygon = createBorderPolygon(extractPolygonsForBorder());
-		XMLFactory.writePolygon(borderPolygon, "abda_out.osm");
+		// XMLFactory.writePolygon(borderPolygon, "abda_out.osm");
 		ArrayList<CustomNode> neighbourPolygon = createBorderPolygon(extractNeighbourPolygon());
-		XMLFactory.writePolygon(neighbourPolygon, "abda_neighbours.osm");
+		// XMLFactory.writePolygon(neighbourPolygon, "abda_neighbours.osm");
 		System.out.println("Reading nodes");
 		try {
 			ArrayList<HashMap<Integer, CustomNode>> list = readNodes(new File(OSM_CLCDATA), borderPolygon, neighbourPolygon);
@@ -66,10 +66,22 @@ public class CLCCreator implements CLCProcessorConstants {
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}
+		addUsedNeighbourNodesToMainNodes();
 		convertPureWaysToRelations();
 		createWayPairs();
 		splitWaysAndUpdateRelations();
 		XMLFactory.writeOSM(clcMainNodes, clcMainWays, clcMainRelations, "clc_out.osm");
+	}
+
+	private void addUsedNeighbourNodesToMainNodes() {
+		for (CustomWay vw : clcMainWays.values()) {
+			for (int i = 0; i < vw.getMembers().size(); i++) {
+				if (clcNeighbourNodes.containsKey(vw.getMembers().get(i))) {
+					clcMainNodes.put(vw.getMembers().get(i), clcNeighbourNodes.get((Integer) vw.getMembers().get(i)));
+				}
+			}
+		}
+
 	}
 
 	private void convertPureWaysToRelations() {
@@ -185,7 +197,10 @@ public class CLCCreator implements CLCProcessorConstants {
 			CustomWay affectedWay = clcMainWays.get((Integer) i);
 
 			if (compactedStartEndPairs.size() == 1
-					&& compactedStartEndPairs.get(0).getFirst() == compactedStartEndPairs.get(0).getSecond()) {
+					&& ((affectedWay.isFullRound() && compactedStartEndPairs.get(0).getFirst() == compactedStartEndPairs
+							.get(0).getSecond()) || (!affectedWay.isFullRound()
+							&& compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.get(0)
+							.getSecond() == affectedWay.getMembers().size() - 1))) {
 				fullyReplacedWays.add(i);
 			} else if (!affectedWay.isFullRound()) {
 				// New ways
@@ -199,7 +214,7 @@ public class CLCCreator implements CLCProcessorConstants {
 								.subList(compactedStartEndPairs.get(i2).getSecond(), compactedStartEndPairs.get(i2 + 1)
 										.getFirst() + 1));
 					}
-					if (!(i2 == 0 && compactedStartEndPairs.get(0).getFirst() == 0)) {
+					if (!(i2 == 0 && compactedStartEndPairs.get(0).getFirst() == 0) && newWay.getMembers().size() > 1) {
 						newWay.setWayId(newWayId);
 						clcMainWays.put(newWayId, newWay);
 						clcMainRelations
@@ -250,7 +265,7 @@ public class CLCCreator implements CLCProcessorConstants {
 				}
 			}
 		}
-		// Add way to collections
+		// Add common ways to collections
 		for (WayPair w : wayPairList) {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				w.setNewWayId(newWayId, i);
@@ -289,7 +304,6 @@ public class CLCCreator implements CLCProcessorConstants {
 		}
 
 		// determine junctions
-		boolean isBReversed = false;
 		int posInBPrev = -1;
 		for (int i = 0; i < cwA.getMembers().size(); i++) {
 			int posInB = cwB.containsNode(cwA.getMembers().get(i));
@@ -299,13 +313,6 @@ public class CLCCreator implements CLCProcessorConstants {
 					w.setNumberOfWays(w.getNumberOfWays() + 1);
 					w.addStartA(i);
 					w.addStartB(posInB);
-				}
-				if (posInBPrev > -1) {
-					if (posInBPrev > posInB) {
-						isBReversed = true;
-					} else {
-						isBReversed = false;
-					}
 				}
 				isCommon = true;
 				posInBPrev = posInB;
@@ -331,18 +338,20 @@ public class CLCCreator implements CLCProcessorConstants {
 			if (w.getEndBSize() < w.getNumberOfWays()) {
 				w.addEndB(posInBPrev);
 			}
-			if (w.getStartA(0) == 0) {
+			if (w.getStartA(0) == 0 && w.getNumberOfWays() > 1) {
 				w.setStartA(w.getStartA(w.getNumberOfWays() - 1), 0);
 				w.setStartB(w.getStartB(w.getNumberOfWays() - 1), 0);
 				w.setNumberOfWays(w.getNumberOfWays() - 1);
 			}
 		}
-		setWayPairData(w, cwA, cwB, isBReversed);
+		setWayPairData(w, cwA, cwB);
 	}
 
-	private void setWayPairData(WayPair w, CustomWay cwA, CustomWay cwB, boolean isBReversed) {
+	private void setWayPairData(WayPair w, CustomWay cwA, CustomWay cwB) {
 		// Swap start and end if needed
-		if (isBReversed) {
+		int commonLength = w.getEndA(0) > w.getStartA(0) ? w.getEndA(0) - w.getStartA(0) : cwA.getMembers().size()
+				+ w.getEndA(0) - w.getStartA(0);
+		if (isBReversed(w.getStartB(0), w.getEndB(0), cwB.getMembers().size(), commonLength)) {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				int temp = w.getEndB(i);
 				w.setEndB(w.getStartB(i), i);
@@ -360,6 +369,15 @@ public class CLCCreator implements CLCProcessorConstants {
 			}
 			w.addNewWay(newWay);
 		}
+	}
+
+	private boolean isBReversed(int startB, int endB, int lengthB, int commonLength) {
+		if ((endB - startB) == commonLength) {
+			return false;
+		} else if ((lengthB + endB - startB) == commonLength) {
+			return false;
+		}
+		return true;
 	}
 
 	public ArrayList<HashMap<Integer, CustomNode>> readNodes(File file, ArrayList<CustomNode> mainPolygon,

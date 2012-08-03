@@ -65,13 +65,7 @@ class CLCWaysHandler extends DefaultHandler {
 		if ("way".equals(qName)) {
 			if (isWayMember) {
 				clcMainWays.put(vw.getWayId(), vw);
-				for(int i = 0; i < vw.getMembers().size(); i++){
-					if(clcNeighbourNodes.containsKey(vw.getMembers().get(i))){
-						clcMainNodes.put(vw.getMembers().get(i), clcNeighbourNodes.get((Integer)vw.getMembers().get(i)));
-					}
-				}
 			}
-
 			vw = new CustomWay();
 			isWayMember = false;
 		}

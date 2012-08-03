@@ -68,19 +68,4 @@ public class CustomWay {
 		}
 		return result;
 	}
-
-	/*public ArrayList<CustomWay> extractWays(ArrayList<NodePair> compactedStartEndPairs) {
-		ArrayList<CustomWay> result = new ArrayList<CustomWay>();
-		for(NodePair startEndPair : compactedStartEndPairs){
-			CustomWay newWay = new CustomWay();
-			if(startEndPair.getFirst() > startEndPair.getSecond()){
-				newWay.addMembers(getMembers().subList(startEndPair.getFirst() + 1, getMembers().size()));
-				newWay.addMembers(getMembers().subList(0, startEndPair.getSecond()));
-			}else{
-				newWay.addMembers(getMembers().subList(startEndPair.getFirst() + 1, startEndPair.getSecond()));
-			}
-			result.add(newWay);
-		}
-		return result;
-	}*/
 }
