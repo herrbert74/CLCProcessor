@@ -1,6 +1,7 @@
 package hu.herrbert74.osm.clcprocessor.osmentities;
 
 import java.util.ArrayList;
+import java.util.Collections;
 
 public class CustomPolygon implements Comparable<CustomPolygon> {
 	String name;
@@ -32,35 +33,65 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 		return nameCmp;
 	}
 
-	public ArrayList<CustomWay> split(ArrayList<CustomNode> intersections) {
+	// NOTE: Result contains only one way for now!
+	public ArrayList<CustomWay> split(Intersections is) {
+		ArrayList<CustomNode> resultNodes = new ArrayList<CustomNode>();
+		resultNodes.addAll(getVillageNodes());
+		resultNodes.remove(resultNodes.size() - 1); // ResultNodes aren't
+													// circular!
 		ArrayList<CustomWay> result = new ArrayList<CustomWay>();
-		boolean buildingBorder = false;
-		CustomWay newWay = new CustomWay();
-		for (int i = 0; i < villageNodes.size(); i++) {
-			if (intersections.indexOf(villageNodes.get(i)) == -1) {
-				newWay.addMember(villageNodes.get(i).getNodeId());
-				buildingBorder = true;
-				// System.out.println("Node added: " +
-				// Integer.toString(villageNodes.get(i).getNodeId()));
-			} else {
-				if (buildingBorder) {
-					newWay.addMember(villageNodes.get(i).getNodeId());
-					result.add(newWay);
-					newWay = new CustomWay();
-				} else {
-					newWay = new CustomWay();
-					newWay.addMember(villageNodes.get(i).getNodeId());
+		boolean isIntersection = false;
+		ArrayList<Integer> iSStart = new ArrayList<Integer>();
+		ArrayList<Integer> iSEnd = new ArrayList<Integer>();
+		ArrayList<Integer> nonISStart = new ArrayList<Integer>();
+		ArrayList<Integer> nonISEnd = new ArrayList<Integer>();
+		for (int i = 0; i < resultNodes.size(); i++) {
+			if (is.getIntersections().contains(villageNodes.get(i))) {
+				if (!isIntersection) {
+					iSStart.add(i);
 				}
-				buildingBorder = false;
-				// System.out.println("Intersection node added: " +
-				// Integer.toString(villageNodes.get(i).getNodeId()));
+				isIntersection = true;
+			} else {
+				if (isIntersection) {
+					iSEnd.add(i - 1);
+				}
+				isIntersection = false;
 			}
 		}
-		if (newWay.getMembers().size() > 0) {
+		if (iSStart.size() > iSEnd.size()) {
+			// Remove false start node
+			if (is.getIntersections().contains(villageNodes.get(0))) {
+
+				iSStart.set(0, iSStart.get(iSStart.size() - 1));
+				iSStart.remove(iSStart.size() - 1);
+			}
+			// Add end node if intersection starts right at node 0
+			else {
+				iSEnd.add(result.size() - 1);
+			}
+		}
+		// Add starting and ending nodes to result
+		for (int i = 0; i < iSStart.size(); i++) {
+			nonISStart.add((iSEnd.get(i) == result.size() - 1) ? 0 : iSEnd.get(i) + 1);
+			int i2 = i == iSStart.size() - 1 ? 0 : i + 1;
+			nonISEnd.add((iSStart.get(i2) == 0) ? result.size() - 1 : iSStart.get(i2) - 1);
+		}
+		// New ways
+		for (int i = 0; i < iSStart.size(); i++) {
+			ArrayList<CustomNode> copyOfResultNodes = new ArrayList<CustomNode>();
+			copyOfResultNodes.addAll(getVillageNodes());
+			// Starting node goes first
+			Collections.rotate(copyOfResultNodes, -nonISStart.get(i));
+			// Cut off the intersecting nodes on the end
+			int nonISSize = nonISEnd.get(i) > nonISStart.get(i) ? nonISEnd.get(i) - nonISStart.get(i)
+					: copyOfResultNodes.size() + nonISEnd.get(i) - nonISStart.get(i);
+			resultNodes = new ArrayList<CustomNode>(copyOfResultNodes.subList(0, nonISSize + 1));
+			CustomWay newWay = new CustomWay();
+			for (CustomNode cn : resultNodes) {
+				newWay.getMembers().add(cn.getNodeId());
+			}
 			result.add(newWay);
 		}
-		// System.out.println("Way closed");
-
 		return result;
 	}
 }
