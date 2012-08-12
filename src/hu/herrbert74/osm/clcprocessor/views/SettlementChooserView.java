@@ -20,6 +20,7 @@ import org.eclipse.swt.widgets.Button;
 import org.eclipse.swt.widgets.Display;
 import org.eclipse.swt.widgets.Label;
 import org.eclipse.swt.widgets.List;
+import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
@@ -40,7 +41,8 @@ public class SettlementChooserView implements java.util.Observer {
 	public SettlementChooserView() {
 		display = new Display();
 		shell = new Shell(display);
-		Rectangle r = Display.getCurrent().getBounds();
+		Monitor primary = display.getPrimaryMonitor();
+		Rectangle r = primary.getBounds();
 		shell.setBounds((int) (r.width * 0.1), (int) (r.height * 0.1),
 				(int) (r.width * 0.8), (int) (r.height * 0.8));
 		Point shellSize = shell.getSize();
