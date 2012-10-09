@@ -5,6 +5,8 @@ import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
 
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
+import java.util.Map;
 import java.util.Observable;
 
 import org.eclipse.swt.SWT;
@@ -32,10 +34,8 @@ public class SettlementChooserView implements java.util.Observer {
 	Button createCLCButton, addButton, removeButton;
 	public Text searchText;
 	public Label progressLabel, searchLabel;
-	public ScrolledComposite polygonListSC, settlementListSC, neighbourListSC,
-			excludedNeighbourListSC;
-	public List polygonList, settlementList, neighbourList,
-			excludedNeighbourList;
+	public ScrolledComposite polygonListSC, settlementListSC, neighbourListSC, excludedNeighbourListSC;
+	public List polygonList, settlementList, neighbourList, excludedNeighbourList;
 	private Button excludeButton;
 
 	public SettlementChooserView() {
@@ -43,8 +43,7 @@ public class SettlementChooserView implements java.util.Observer {
 		shell = new Shell(display);
 		Monitor primary = display.getPrimaryMonitor();
 		Rectangle r = primary.getBounds();
-		shell.setBounds((int) (r.width * 0.1), (int) (r.height * 0.1),
-				(int) (r.width * 0.8), (int) (r.height * 0.8));
+		shell.setBounds((int) (r.width * 0.1), (int) (r.height * 0.1), (int) (r.width * 0.8), (int) (r.height * 0.8));
 		Point shellSize = shell.getSize();
 		shell.setMinimumSize(600, 600);
 		FormLayout layout = new FormLayout();
@@ -62,18 +61,17 @@ public class SettlementChooserView implements java.util.Observer {
 		polygonList.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseScrolled(MouseEvent e) {
-				int listItemHeight = polygonList.computeSize(SWT.DEFAULT,
-						SWT.DEFAULT).y / polygonList.getItemCount();
+				int listItemHeight = polygonList.computeSize(SWT.DEFAULT, SWT.DEFAULT).y / polygonList.getItemCount();
 				if (e.count == -3) {
 					int topIndex = polygonList.getSelectionIndex();
 					// polygonList.setSelection(++topIndex);
-					polygonListSC.setOrigin(polygonListSC.getOrigin().x,
-							polygonListSC.getOrigin().y + listItemHeight * 10);
+					polygonListSC.setOrigin(polygonListSC.getOrigin().x, polygonListSC.getOrigin().y + listItemHeight
+							* 10);
 				} else if (e.count == 3) {
 					int topIndex = polygonList.getSelectionIndex();
 					// polygonList.setSelection(--topIndex);
-					polygonListSC.setOrigin(polygonListSC.getOrigin().x,
-							polygonListSC.getOrigin().y - listItemHeight * 10);
+					polygonListSC.setOrigin(polygonListSC.getOrigin().x, polygonListSC.getOrigin().y - listItemHeight
+							* 10);
 				}
 			}
 		});
@@ -85,18 +83,18 @@ public class SettlementChooserView implements java.util.Observer {
 		settlementList.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseScrolled(MouseEvent e) {
-				int listItemHeight = settlementList.computeSize(SWT.DEFAULT,
-						SWT.DEFAULT).y / settlementList.getItemCount();
+				int listItemHeight = settlementList.computeSize(SWT.DEFAULT, SWT.DEFAULT).y
+						/ settlementList.getItemCount();
 				if (e.count == -3) {
 					int topIndex = settlementList.getSelectionIndex();
 					settlementList.setSelection(++topIndex);
-					settlementListSC.setOrigin(settlementListSC.getOrigin().x,
-							settlementListSC.getOrigin().y + listItemHeight);
+					settlementListSC.setOrigin(settlementListSC.getOrigin().x, settlementListSC.getOrigin().y
+							+ listItemHeight);
 				} else if (e.count == 3) {
 					int topIndex = settlementList.getSelectionIndex();
 					settlementList.setSelection(--topIndex);
-					settlementListSC.setOrigin(settlementListSC.getOrigin().x,
-							settlementListSC.getOrigin().y - listItemHeight);
+					settlementListSC.setOrigin(settlementListSC.getOrigin().x, settlementListSC.getOrigin().y
+							- listItemHeight);
 				}
 			}
 		});
@@ -108,18 +106,18 @@ public class SettlementChooserView implements java.util.Observer {
 		neighbourList.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseScrolled(MouseEvent e) {
-				int listItemHeight = neighbourList.computeSize(SWT.DEFAULT,
-						SWT.DEFAULT).y / neighbourList.getItemCount();
+				int listItemHeight = neighbourList.computeSize(SWT.DEFAULT, SWT.DEFAULT).y
+						/ neighbourList.getItemCount();
 				if (e.count == -3) {
 					int topIndex = neighbourList.getSelectionIndex();
 					neighbourList.setSelection(++topIndex);
-					neighbourListSC.setOrigin(neighbourListSC.getOrigin().x,
-							neighbourListSC.getOrigin().y + listItemHeight);
+					neighbourListSC.setOrigin(neighbourListSC.getOrigin().x, neighbourListSC.getOrigin().y
+							+ listItemHeight);
 				} else if (e.count == 3) {
 					int topIndex = neighbourList.getSelectionIndex();
 					neighbourList.setSelection(--topIndex);
-					neighbourListSC.setOrigin(neighbourListSC.getOrigin().x,
-							neighbourListSC.getOrigin().y - listItemHeight);
+					neighbourListSC.setOrigin(neighbourListSC.getOrigin().x, neighbourListSC.getOrigin().y
+							- listItemHeight);
 				}
 			}
 		});
@@ -131,23 +129,18 @@ public class SettlementChooserView implements java.util.Observer {
 		excludedNeighbourList.addMouseWheelListener(new MouseWheelListener() {
 			@Override
 			public void mouseScrolled(MouseEvent e) {
-				int listItemHeight = excludedNeighbourList.computeSize(
-						SWT.DEFAULT, SWT.DEFAULT).y
+				int listItemHeight = excludedNeighbourList.computeSize(SWT.DEFAULT, SWT.DEFAULT).y
 						/ excludedNeighbourList.getItemCount();
 				if (e.count == -3) {
 					int topIndex = excludedNeighbourList.getSelectionIndex();
 					excludedNeighbourList.setSelection(++topIndex);
-					excludedNeighbourListSC.setOrigin(
-							excludedNeighbourListSC.getOrigin().x,
-							excludedNeighbourListSC.getOrigin().y
-									+ listItemHeight);
+					excludedNeighbourListSC.setOrigin(excludedNeighbourListSC.getOrigin().x, excludedNeighbourListSC
+							.getOrigin().y + listItemHeight);
 				} else if (e.count == 3) {
 					int topIndex = excludedNeighbourList.getSelectionIndex();
 					excludedNeighbourList.setSelection(--topIndex);
-					excludedNeighbourListSC.setOrigin(
-							excludedNeighbourListSC.getOrigin().x,
-							excludedNeighbourListSC.getOrigin().y
-									- listItemHeight);
+					excludedNeighbourListSC.setOrigin(excludedNeighbourListSC.getOrigin().x, excludedNeighbourListSC
+							.getOrigin().y - listItemHeight);
 				}
 			}
 		});
@@ -179,12 +172,9 @@ public class SettlementChooserView implements java.util.Observer {
 		searchLabel.setText("Search");
 
 		polygonListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
-		settlementListSC = new ScrolledComposite(shell, SWT.BORDER
-				| SWT.V_SCROLL);
-		neighbourListSC = new ScrolledComposite(shell, SWT.BORDER
-				| SWT.V_SCROLL);
-		excludedNeighbourListSC = new ScrolledComposite(shell, SWT.BORDER
-				| SWT.V_SCROLL);
+		settlementListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
+		neighbourListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
+		excludedNeighbourListSC = new ScrolledComposite(shell, SWT.BORDER | SWT.V_SCROLL);
 		polygonList = new List(polygonListSC, SWT.SINGLE);
 		polygonList.setData(new String("POLYGONLIST"));
 		settlementList = new List(settlementListSC, SWT.SINGLE);
@@ -266,15 +256,16 @@ public class SettlementChooserView implements java.util.Observer {
 
 	@Override
 	public void update(Observable o, Object arg) {
-		if (arg instanceof ArrayList<?>) {
-			ArrayList<CustomPolygon> vps = (ArrayList<CustomPolygon>) arg;
-			Collections.sort(vps);
-			for (CustomPolygon vp : vps) {
+		if (arg instanceof Map<?, ?>) {
+			Map<String, CustomPolygon> vps = (HashMap<String, CustomPolygon>) arg;
+			for (CustomPolygon vp : vps.values()) {
 				polygonList.add(vp.getName());
 			}
-			polygonListSC.setMinSize(polygonListSC.computeSize(SWT.DEFAULT,
-					SWT.DEFAULT));
-		}else if (arg instanceof String) {
+			String[] items = polygonList.getItems();
+			java.util.Arrays.sort(items);
+			polygonList.setItems(items);
+			polygonListSC.setMinSize(polygonListSC.computeSize(SWT.DEFAULT, SWT.DEFAULT));
+		} else if (arg instanceof String) {
 			String status = (String) arg;
 			progressLabel.setText(status);
 		}

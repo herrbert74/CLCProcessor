@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor.utils;
+package hu.herrbert74.osm.clcprocessor.dao;
 
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelation;
@@ -13,7 +13,7 @@ import java.util.Map;
 import javax.xml.stream.XMLOutputFactory;
 import javax.xml.stream.XMLStreamWriter;
 
-public class XMLFactory {
+public class XMLFunctions {
 	public static void writePolygon(ArrayList<CustomNode> polygon,
 			String filename) {
 		XMLOutputFactory factory = XMLOutputFactory.newInstance();

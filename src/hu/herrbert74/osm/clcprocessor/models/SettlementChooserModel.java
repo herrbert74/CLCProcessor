@@ -12,7 +12,8 @@ import java.util.HashMap;
 import java.util.Map;
 
 public class SettlementChooserModel extends java.util.Observable {
-	public ArrayList<CustomPolygon> villagePolygons = new ArrayList<CustomPolygon>();
+	//public ArrayList<CustomPolygon> villagePolygons = new ArrayList<CustomPolygon>();
+	public Map<String, CustomPolygon> villagePolygons = new HashMap<String, CustomPolygon>();
 	public Map<Integer, CustomNode> villageNodesMap = new HashMap<Integer, CustomNode>();
 	public Map<Integer, CustomWay> villageWaysMap = new HashMap<Integer, CustomWay>();
 	public Map<String, CustomRelation> villageRelationsMap = new HashMap<String, CustomRelation>();
@@ -21,6 +22,8 @@ public class SettlementChooserModel extends java.util.Observable {
 	public HashMap<Integer, CustomNode> clcNeighbourNodes = new HashMap<Integer, CustomNode>();
 	public HashMap<Integer, CustomWay> clcMainWays = new HashMap<Integer, CustomWay>();
 	public HashMap<Integer, CustomRelation> clcMainRelations = new HashMap<Integer, CustomRelation>();
+	public ArrayList<CustomNode> borderPolygon;
+	public ArrayList<CustomNode> neighbourPolygon;
 	public ArrayList<WayPair> wayPairList = new ArrayList<WayPair>();
 	
 	public String status = "";
@@ -28,8 +31,7 @@ public class SettlementChooserModel extends java.util.Observable {
 	public void createVillagePolygons() {
 		int z = 0;
 		for (CustomRelation vr : villageRelationsMap.values()) {
-			System.out
-					.println("polygon: " + Integer.toString(++z) + "/" + Integer.toString(villageRelationsMap.size()));
+			setStatus("polygon: " + Integer.toString(++z) + "/" + Integer.toString(villageRelationsMap.size()));
 			CustomPolygon vp = new CustomPolygon();
 			vp.setName(vr.getName());
 			CustomNode firstNode = new CustomNode();
@@ -59,7 +61,7 @@ public class SettlementChooserModel extends java.util.Observable {
 				vr.getMembers().remove(vr.getMembers().indexOf(vr.getMemberWithWayId(vw.getWayId())));
 			} while (vr.getMembers().size() > 0);
 			vp.addVillageNode(firstNode);
-			villagePolygons.add(vp);
+			villagePolygons.put(vp.getName(),vp);
 		}
 		setChanged();
 		notifyObservers(villagePolygons);

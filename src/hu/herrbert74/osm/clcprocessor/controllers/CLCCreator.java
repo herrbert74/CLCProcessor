@@ -4,23 +4,20 @@ import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
 import hu.herrbert74.osm.clcprocessor.dao.CLCNodesHandler;
 import hu.herrbert74.osm.clcprocessor.dao.CLCRelationsHandler;
 import hu.herrbert74.osm.clcprocessor.dao.CLCWaysHandler;
+import hu.herrbert74.osm.clcprocessor.dao.XMLFunctions;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
-import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelation;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelationMember;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
-import hu.herrbert74.osm.clcprocessor.osmentities.Intersections;
 import hu.herrbert74.osm.clcprocessor.osmentities.NodePair;
 import hu.herrbert74.osm.clcprocessor.osmentities.WayPair;
 import hu.herrbert74.osm.clcprocessor.utils.Functions;
-import hu.herrbert74.osm.clcprocessor.utils.XMLFactory;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
 
 import java.io.File;
 import java.io.IOException;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
@@ -37,17 +34,27 @@ public class CLCCreator implements CLCProcessorConstants {
 
 	SettlementChooserModel scModel;
 	SettlementChooserView scView;
-	
+
 	public void createCLC(SettlementChooserModel scM, SettlementChooserView scV) {
 		this.scView = scV;
 		this.scModel = scM;
-		scModel.setStatus("Creating border polygon");
-		ArrayList<CustomNode> borderPolygon = createBorderPolygon(extractPolygonsForBorder());
+		PolygonCreator pc = new PolygonCreator(scModel);
+		scModel.setStatus("Creating main polygon");
+		scModel.borderPolygon = pc.createBorderPolygon(scView.settlementList.getItems());
 		scModel.setStatus("Creating neighbour polygon");
-		ArrayList<CustomNode> neighbourPolygon = createBorderPolygon(extractNeighbourPolygon());
+		scModel.neighbourPolygon = pc.createBorderPolygon(scView.neighbourList.getItems());
+		readCLCData();
+		convertPureWaysToRelations();
+		createWayPairs();
+		splitWaysAndUpdateRelations();
+		XMLFunctions.writeOSM(scModel.clcMainNodes, scModel.clcMainWays, scModel.clcMainRelations, "clc_out.osm");
+	}
+
+	private void readCLCData() {
+
 		scModel.setStatus("Reading nodes");
 		try {
-			ArrayList<HashMap<Integer, CustomNode>> list = readNodes(new File(OSM_CLCDATA), borderPolygon, neighbourPolygon);
+			ArrayList<HashMap<Integer, CustomNode>> list = readNodes(new File(OSM_CLCDATA), scModel.borderPolygon, scModel.neighbourPolygon);
 			scModel.clcMainNodes = list.get(0);
 			scModel.clcNeighbourNodes = list.get(1);
 		} catch (ParserConfigurationException | SAXException | IOException e) {
@@ -65,19 +72,16 @@ public class CLCCreator implements CLCProcessorConstants {
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}
+		
 		addUsedNeighbourNodesToMainNodes();
-		convertPureWaysToRelations();
-		createWayPairs();
-		splitWaysAndUpdateRelations();
-		XMLFactory.writeOSM(scModel.clcMainNodes, scModel.clcMainWays, scModel.clcMainRelations, "clc_out.osm");
 	}
 
-	
 	private void addUsedNeighbourNodesToMainNodes() {
 		for (CustomWay vw : scModel.clcMainWays.values()) {
 			for (int i = 0; i < vw.getMembers().size(); i++) {
 				if (scModel.clcNeighbourNodes.containsKey(vw.getMembers().get(i))) {
-					scModel.clcMainNodes.put(vw.getMembers().get(i), scModel.clcNeighbourNodes.get((Integer) vw.getMembers().get(i)));
+					scModel.clcMainNodes.put(vw.getMembers().get(i), scModel.clcNeighbourNodes.get((Integer) vw
+							.getMembers().get(i)));
 				}
 			}
 		}
@@ -218,8 +222,8 @@ public class CLCCreator implements CLCProcessorConstants {
 								&& newWay.getMembers().size() > 1) {
 							newWay.setWayId(newWayId);
 							scModel.clcMainWays.put(newWayId, newWay);
-							scModel.clcMainRelations
-									.get(Functions.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations))
+							scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays
+									.get(affectedWay.getWayId()), scModel.clcMainRelations))
 									.addMember(new CustomRelationMember("way", newWayId, "outer"));
 							newWayId--;
 						}
@@ -253,8 +257,8 @@ public class CLCCreator implements CLCProcessorConstants {
 						scModel.clcMainWays.put(newWayId, newWay);
 						int parent = Functions
 								.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations);
-						scModel.clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way", newWayId,
-								"outer"));
+						scModel.clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way",
+								newWayId, "outer"));
 						newWayId--;
 					} catch (IllegalArgumentException e) {
 						System.out.println(e.getMessage());
@@ -280,9 +284,11 @@ public class CLCCreator implements CLCProcessorConstants {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				w.setNewWayId(newWayId, i);
 				scModel.clcMainWays.put(newWayId, w.getNewWay(i));
-				scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getFirst()), scModel.clcMainRelations))
+				scModel.clcMainRelations
+						.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getFirst()), scModel.clcMainRelations))
 						.addMember(new CustomRelationMember("way", newWayId, "outer"));
-				scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getSecond()), scModel.clcMainRelations))
+				scModel.clcMainRelations
+						.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getSecond()), scModel.clcMainRelations))
 						.addMember(new CustomRelationMember("way", newWayId, "outer"));
 				newWayId--;
 			}
@@ -432,188 +438,5 @@ public class CLCCreator implements CLCProcessorConstants {
 		clcMainRelations = relationsHandler.getRelations();
 
 		return clcMainRelations;
-	}
-
-	private ArrayList<CustomPolygon> extractPolygonsForBorder() {
-		ArrayList<CustomPolygon> aggregatePolygonMembers = new ArrayList<CustomPolygon>();
-		for (int i = 0; i < scModel.villagePolygons.size(); i++) {
-			for (String village : scView.settlementList.getItems()) {
-				if (scModel.villagePolygons.get(i).getName().equals(village)) {
-					aggregatePolygonMembers.add(scModel.villagePolygons.get(i));
-					// XMLFactory.writePolygon(scModel.villagePolygons.get(i).getVillageNodes(),
-					// scModel.villagePolygons.get(i).getName() + ".osm");
-				}
-			}
-		}
-		return aggregatePolygonMembers;
-	}
-
-	private ArrayList<CustomPolygon> extractNeighbourPolygon() {
-		ArrayList<CustomPolygon> result = new ArrayList<CustomPolygon>();
-		for (int i = 0; i < scModel.villagePolygons.size(); i++) {
-			for (String village : scView.neighbourList.getItems()) {
-				if (scModel.villagePolygons.get(i).getName().equals(village)) {
-					result.add(scModel.villagePolygons.get(i));
-					// XMLFactory.writePolygon(scModel.villagePolygons.get(i).getVillageNodes(),
-					// scModel.villagePolygons.get(i).getName() + ".osm");
-				}
-			}
-		}
-		return result;
-	}
-
-	private Collection<? extends CustomNode> getVillageNodes(CustomWay villageWay, CustomNode startNode) {
-		ArrayList<CustomNode> result = new ArrayList<CustomNode>();
-		if (villageWay.getMembers().get(0) == startNode.getNodeId()) {
-			for (int vnID : villageWay.getMembers()) {
-				result.add(scModel.villageNodesMap.get(vnID));
-			}
-		}
-		// Reverse way
-		else {
-			for (int i = villageWay.getMembers().size() - 1; i >= 0; i--) {
-				result.add(scModel.villageNodesMap.get(villageWay.getMembers().get(i)));
-			}
-		}
-		return result;
-	}
-
-	private ArrayList<CustomNode> createBorderPolygon(ArrayList<CustomPolygon> aggregatePolygonMembers) {
-		Intersections is = new Intersections();
-		ArrayList<CustomWay> ways = new ArrayList<CustomWay>();
-		is = findIntersections(aggregatePolygonMembers);
-		for (CustomPolygon vp : aggregatePolygonMembers) {
-			ways.addAll(vp.split(is));
-		}
-		ArrayList<CustomNode> result = concatenateWays(ways);
-		result.add(result.get(0));
-		return result;
-	}
-
-	private Intersections findIntersections(ArrayList<CustomPolygon> aggregatePolygonMembers) {
-		Intersections result = new Intersections();
-		for (CustomPolygon vp : aggregatePolygonMembers) {
-			boolean[] isNodes = new boolean[vp.getVillageNodes().size()];
-			isNodes = getIntersectionNodes(aggregatePolygonMembers, vp);
-			boolean[] isStart = new boolean[vp.getVillageNodes().size()];
-			isStart = getStartNodes(isNodes);
-			boolean[] isEnd = new boolean[vp.getVillageNodes().size()];
-			isEnd = getEndNodes(isNodes);
-			ArrayList<NodePair> forbiddenEdges = new ArrayList<NodePair>();
-			forbiddenEdges = getForbiddenEdges(isStart, isEnd);
-			// isNodes = unsetStartsAndEnds(isNodes, isStart, isEnd);
-			result.addStartsAndEnds(vp, isStart, isEnd);
-			HashSet<CustomNode> nodes = new HashSet<CustomNode>();
-			for (int i = 0; i < vp.getVillageNodes().size() - 1; i++) {
-				if (isNodes[i]) {
-					nodes.add(vp.getVillageNodes().get(i));
-				}
-			}
-			result.addIntersections(nodes);
-			result.addForbiddenEdges(forbiddenEdges);
-		}
-		result.unsetStartsAndEnds();
-		return result;
-	}
-
-	private boolean[] getStartNodes(boolean[] isNodes) {
-		boolean[] result = new boolean[isNodes.length];
-		for (int i = 1; i < isNodes.length; i++) {
-			if (isNodes[i] && !isNodes[i - 1]) {
-				result[i] = true;
-			} else {
-				result[i] = false;
-			}
-
-		}
-
-		return result;
-	}
-
-	private boolean[] getEndNodes(boolean[] isNodes) {
-		boolean[] result = new boolean[isNodes.length];
-		for (int i = 0; i < isNodes.length - 1; i++) {
-			if (isNodes[i] && !isNodes[i + 1]) {
-				result[i] = true;
-			} else {
-				result[i] = false;
-			}
-		}
-
-		return result;
-	}
-
-	private ArrayList<NodePair> getForbiddenEdges(boolean[] isStart, boolean[] isEnd) {
-		ArrayList<NodePair> np = new ArrayList<NodePair>();
-		for (int i = 0; i < isStart.length - 1; i++) {
-			if (isStart[i] && isEnd[i + 1]) {
-				np.add(new NodePair(i, i + 1));
-			}
-		}
-		return np;
-	}
-
-	private boolean[] unsetStartsAndEnds(boolean[] isNodes, boolean[] isStart, boolean[] isEnd) {
-		for (int i = 0; i < isNodes.length; i++) {
-			isNodes[i] = isNodes[i] && (!(isStart[i] || isEnd[i]));
-		}
-		return isNodes;
-	}
-
-	private boolean[] getIntersectionNodes(ArrayList<CustomPolygon> aggregatePolygonMembers, CustomPolygon vp) {
-		boolean[] result = new boolean[vp.getVillageNodes().size()];
-		for (int i = 0; i < vp.getVillageNodes().size(); i++) {
-			searchIntersection(aggregatePolygonMembers, vp, result, i);
-		}
-		return result;
-	}
-
-	private void searchIntersection(ArrayList<CustomPolygon> aggregatePolygonMembers, CustomPolygon vp,
-			boolean[] result, int i) {
-		for (CustomPolygon vpToCompare : aggregatePolygonMembers) {
-			if (!vp.equals(vpToCompare)) {
-				for (CustomNode vnToCompare : vpToCompare.getVillageNodes()) {
-					if (vp.getVillageNodes().get(i).getNodeId() == vnToCompare.getNodeId()) {
-						result[i] = true;
-						return;
-					}
-				}
-			}
-		}
-	}
-
-	private ArrayList<CustomNode> concatenateWays(ArrayList<CustomWay> ways) {
-		ArrayList<CustomNode> result = new ArrayList<CustomNode>();
-		for (int i = 0; i < ways.size(); i++) {
-			System.out.println(Integer.toString(ways.get(i).getMembers().get(0)) + "-"
-					+ Integer.toString(ways.get(i).getMembers().get(ways.get(i).getMembers().size() - 1)));
-
-		}
-		do {
-			if (result.size() == 0) {
-				System.out.println(Integer.toString(ways.get(0).getMembers().get(0)) + "-"
-						+ Integer.toString(ways.get(0).getMembers().get(ways.get(0).getMembers().size() - 1))
-						+ " size: " + Integer.toString(ways.get(0).getMembers().size()));
-				for (int i = 0; i < ways.get(0).getMembers().size(); i++) {
-					result.add(scModel.villageNodesMap.get(ways.get(0).getMembers().get(i)));
-				}
-				ways.remove(0);
-			} else {
-				int i = -1;
-				CustomNode lastNode = result.get(result.size() - 1);
-				do {
-					i++;
-					if (ways.get(i).containsNode(lastNode.getNodeId()) >= 0) {
-						System.out.println(Integer.toString(ways.get(i).getMembers().get(0)) + "-"
-								+ Integer.toString(ways.get(i).getMembers().get(ways.get(i).getMembers().size() - 1))
-								+ " size: " + Integer.toString(ways.get(i).getMembers().size()));
-						result.remove(result.size() - 1);
-						result.addAll(getVillageNodes(ways.get(i), lastNode));
-					}
-				} while (!(ways.get(i).containsNode(lastNode.getNodeId()) >= 0));
-				ways.remove(i);
-			}
-		} while (ways.size() > 0);
-		return result;
 	}
 }

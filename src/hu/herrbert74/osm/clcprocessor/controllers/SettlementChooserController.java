@@ -4,11 +4,11 @@ import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
 import hu.herrbert74.osm.clcprocessor.dao.OsmNodesHandler;
 import hu.herrbert74.osm.clcprocessor.dao.OsmRelationsHandler;
 import hu.herrbert74.osm.clcprocessor.dao.OsmWaysHandler;
+import hu.herrbert74.osm.clcprocessor.dao.XMLFunctions;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
-import hu.herrbert74.osm.clcprocessor.utils.XMLFactory;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
 
 import java.io.File;
@@ -153,16 +153,18 @@ public class SettlementChooserController implements CLCProcessorConstants,
 	}
 
 	private void addNeighbours() {
+		/*TODO
+		 * villagePolygon has changeed from ArrayList to Map. Change this method accordingly!!!*/
 		scView.neighbourList.removeAll();
 		for (String z : scView.settlementList.getItems()) {
 			CustomPolygon vpFound = new CustomPolygon();
-			for (CustomPolygon vp : scModel.villagePolygons) {
+			for (CustomPolygon vp : scModel.villagePolygons.values()) {
 				if (vp.getName().equals(z)) {
 					vpFound = vp;
 				}
 			}
 			for (CustomNode vn : vpFound.getVillageNodes()) {
-				for (CustomPolygon vp : scModel.villagePolygons) {
+				for (CustomPolygon vp : scModel.villagePolygons.values()) {
 					if (vp.getVillageNodes().contains(vn)
 							&& scView.settlementList.indexOf(vp.getName()) == -1
 							&& scView.neighbourList.indexOf(vp.getName()) == -1
