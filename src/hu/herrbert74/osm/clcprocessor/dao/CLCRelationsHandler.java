@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor.controllers;
+package hu.herrbert74.osm.clcprocessor.dao;
 
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelation;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelationMember;
@@ -13,7 +13,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-class CLCRelationsHandler extends DefaultHandler {
+public class CLCRelationsHandler extends DefaultHandler {
 
 	HashMap<Integer, CustomWay> clcMainWays = new HashMap<Integer, CustomWay>();
 	HashMap<Integer, CustomRelation> clcMainRelations = new HashMap<Integer, CustomRelation>();

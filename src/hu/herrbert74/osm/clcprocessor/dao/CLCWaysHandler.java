@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor.controllers;
+package hu.herrbert74.osm.clcprocessor.dao;
 
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
@@ -10,7 +10,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-class CLCWaysHandler extends DefaultHandler {
+public class CLCWaysHandler extends DefaultHandler {
 
 	HashMap<Integer, CustomNode> clcMainNodes = new HashMap<Integer, CustomNode>();
 	HashMap<Integer, CustomNode> clcNeighbourNodes = new HashMap<Integer, CustomNode>();

@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor.controllers;
+package hu.herrbert74.osm.clcprocessor.dao;
 
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.utils.Functions;
@@ -11,7 +11,7 @@ import org.xml.sax.Attributes;
 import org.xml.sax.SAXException;
 import org.xml.sax.helpers.DefaultHandler;
 
-class CLCNodesHandler extends DefaultHandler {
+public class CLCNodesHandler extends DefaultHandler {
 
 	ArrayList<CustomNode> mainPolygon;
 	ArrayList<CustomNode> neighbourPolygon;

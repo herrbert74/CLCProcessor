@@ -1,6 +1,9 @@
 package hu.herrbert74.osm.clcprocessor.controllers;
 
 import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
+import hu.herrbert74.osm.clcprocessor.dao.CLCNodesHandler;
+import hu.herrbert74.osm.clcprocessor.dao.CLCRelationsHandler;
+import hu.herrbert74.osm.clcprocessor.dao.CLCWaysHandler;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
@@ -34,38 +37,31 @@ public class CLCCreator implements CLCProcessorConstants {
 
 	SettlementChooserModel scModel;
 	SettlementChooserView scView;
-	HashMap<Integer, CustomNode> clcMainNodes = new HashMap<Integer, CustomNode>();
-	HashMap<Integer, CustomNode> clcNeighbourNodes = new HashMap<Integer, CustomNode>();
-	HashMap<Integer, CustomWay> clcMainWays = new HashMap<Integer, CustomWay>();
-	HashMap<Integer, CustomRelation> clcMainRelations = new HashMap<Integer, CustomRelation>();
-	ArrayList<WayPair> wayPairList = new ArrayList<WayPair>();
-
-	public void createCLC(SettlementChooserModel scModel, SettlementChooserView scView) {
-		this.scView = scView;
-		this.scModel = scModel;
-		System.out.println("border polygon");
+	
+	public void createCLC(SettlementChooserModel scM, SettlementChooserView scV) {
+		this.scView = scV;
+		this.scModel = scM;
+		scModel.setStatus("Creating border polygon");
 		ArrayList<CustomNode> borderPolygon = createBorderPolygon(extractPolygonsForBorder());
-		// XMLFactory.writePolygon(borderPolygon, "abda_out.osm");
-		System.out.println("neighbour polygon");
+		scModel.setStatus("Creating neighbour polygon");
 		ArrayList<CustomNode> neighbourPolygon = createBorderPolygon(extractNeighbourPolygon());
-		// XMLFactory.writePolygon(neighbourPolygon, "abda_neighbours.osm");
-		System.out.println("Reading nodes");
+		scModel.setStatus("Reading nodes");
 		try {
 			ArrayList<HashMap<Integer, CustomNode>> list = readNodes(new File(OSM_CLCDATA), borderPolygon, neighbourPolygon);
-			clcMainNodes = list.get(0);
-			clcNeighbourNodes = list.get(1);
+			scModel.clcMainNodes = list.get(0);
+			scModel.clcNeighbourNodes = list.get(1);
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Reading ways");
+		scModel.setStatus("Reading ways");
 		try {
-			clcMainWays = readWays(new File(OSM_CLCDATA), clcMainNodes, clcNeighbourNodes);
+			scModel.clcMainWays = readWays(new File(OSM_CLCDATA), scModel.clcMainNodes, scModel.clcMainNodes);
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}
-		System.out.println("Reading relations");
+		scModel.setStatus("Reading relations");
 		try {
-			clcMainRelations = readRelations(new File(OSM_CLCDATA), clcMainWays);
+			scModel.clcMainRelations = readRelations(new File(OSM_CLCDATA), scModel.clcMainWays);
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}
@@ -73,14 +69,15 @@ public class CLCCreator implements CLCProcessorConstants {
 		convertPureWaysToRelations();
 		createWayPairs();
 		splitWaysAndUpdateRelations();
-		XMLFactory.writeOSM(clcMainNodes, clcMainWays, clcMainRelations, "clc_out.osm");
+		XMLFactory.writeOSM(scModel.clcMainNodes, scModel.clcMainWays, scModel.clcMainRelations, "clc_out.osm");
 	}
 
+	
 	private void addUsedNeighbourNodesToMainNodes() {
-		for (CustomWay vw : clcMainWays.values()) {
+		for (CustomWay vw : scModel.clcMainWays.values()) {
 			for (int i = 0; i < vw.getMembers().size(); i++) {
-				if (clcNeighbourNodes.containsKey(vw.getMembers().get(i))) {
-					clcMainNodes.put(vw.getMembers().get(i), clcNeighbourNodes.get((Integer) vw.getMembers().get(i)));
+				if (scModel.clcNeighbourNodes.containsKey(vw.getMembers().get(i))) {
+					scModel.clcMainNodes.put(vw.getMembers().get(i), scModel.clcNeighbourNodes.get((Integer) vw.getMembers().get(i)));
 				}
 			}
 		}
@@ -90,9 +87,9 @@ public class CLCCreator implements CLCProcessorConstants {
 	private void convertPureWaysToRelations() {
 		boolean pureWay;
 		int newRelationId = -5000000;
-		for (CustomWay cw : clcMainWays.values()) {
+		for (CustomWay cw : scModel.clcMainWays.values()) {
 			pureWay = true;
-			for (CustomRelation cr : clcMainRelations.values()) {
+			for (CustomRelation cr : scModel.clcMainRelations.values()) {
 				for (CustomRelationMember crm : cr.getMembers()) {
 					if (crm.getRef() == cw.getWayId()) {
 						pureWay = false;
@@ -101,24 +98,25 @@ public class CLCCreator implements CLCProcessorConstants {
 			}
 			if (pureWay) {
 				newRelationId--;
-				CustomRelation cr = new CustomRelation(new CustomRelationMember("way", cw.getWayId(), "outer"), newRelationId);
+				CustomRelation cr = new CustomRelation(new CustomRelationMember("way", cw.getWayId(), "outer"),
+						newRelationId);
 				Iterator<Map.Entry<String, String>> it = cw.getTags().entrySet().iterator();
 				while (it.hasNext()) {
 					Map.Entry<String, String> pairs = (Map.Entry<String, String>) it.next();
 					cr.addTag(pairs.getKey(), pairs.getValue());
 				}
 				cr.addTag("type", "multipolygon");
-				clcMainRelations.put(newRelationId, cr);
+				scModel.clcMainRelations.put(newRelationId, cr);
 			}
 		}
 	}
 
 	private void createWayPairs() {
 
-		for (CustomRelation cr : clcMainRelations.values()) {
+		for (CustomRelation cr : scModel.clcMainRelations.values()) {
 			for (int i = 0; i < cr.getMembers().size(); i++) {
 				if (cr.getMembers().get(i).getRole().equals("outer")) {
-					for (CustomRelation otherCr : clcMainRelations.values()) {
+					for (CustomRelation otherCr : scModel.clcMainRelations.values()) {
 						/*
 						 * System.out.println(
 						 * "Checking way and relation for WayPair: " +
@@ -126,15 +124,18 @@ public class CLCCreator implements CLCProcessorConstants {
 						 * " relation: " +
 						 * Integer.toString(otherCr.getRelationId()));
 						 */
-						int overLappingWayId = otherCr.getOverLappingMember(cr.getMembers().get(i).getRef(), clcMainWays, clcMainNodes);
+						int overLappingWayId = otherCr
+								.getOverLappingMember(cr.getMembers().get(i).getRef(), scModel.clcMainWays, scModel.clcMainNodes);
 						if (overLappingWayId != -1) {
 							WayPair w = new WayPair(cr.getMembers().get(i).getRef(), overLappingWayId);
-							if (!wayPairList.contains(w)) {
-								System.out.println("Added WayPair: " + Integer.toString(cr.getMembers().get(i).getRef())
+							if (!scModel.wayPairList.contains(w)) {
+								System.out.println("Added WayPair: "
+										+ Integer.toString(cr.getMembers().get(i).getRef())
 										+ Integer.toString(overLappingWayId));
-								wayPairList.add(w);
+								scModel.wayPairList.add(w);
 							} else {
-								System.out.println("Discarded WayPair: " + Integer.toString(cr.getMembers().get(i).getRef())
+								System.out.println("Discarded WayPair: "
+										+ Integer.toString(cr.getMembers().get(i).getRef())
 										+ Integer.toString(overLappingWayId));
 							}
 						}
@@ -148,7 +149,7 @@ public class CLCCreator implements CLCProcessorConstants {
 		HashSet<Integer> affectedWays = new HashSet<Integer>();
 		ArrayList<Integer> fullyReplacedWays = new ArrayList<Integer>();
 		int newWayId = -6000000;
-		for (WayPair w : wayPairList) {
+		for (WayPair w : scModel.wayPairList) {
 			affectedWays.add(w.getFirst());
 			affectedWays.add(w.getSecond());
 			determineJunctions(w);
@@ -161,7 +162,7 @@ public class CLCCreator implements CLCProcessorConstants {
 
 			ArrayList<NodePair> startEndPairs = new ArrayList<NodePair>();
 			ArrayList<NodePair> compactedStartEndPairs = new ArrayList<NodePair>();
-			for (WayPair w : wayPairList) {
+			for (WayPair w : scModel.wayPairList) {
 				for (int i2 = 0; i2 < w.getNumberOfWays(); i2++) {
 					if (w.getFirst() == i) {
 
@@ -177,47 +178,58 @@ public class CLCCreator implements CLCProcessorConstants {
 			// Compact it!
 			for (int i2 = 1; i2 < startEndPairs.size(); i2++) {
 				if (startEndPairs.get(i2 - 1).getSecond() == startEndPairs.get(i2).getFirst()) {
-					compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).setSecond(startEndPairs.get(i2).getSecond());
+					compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).setSecond(startEndPairs.get(i2)
+							.getSecond());
 				} else {
-					compactedStartEndPairs.add(new NodePair(startEndPairs.get(i2).getFirst(), startEndPairs.get(i2).getSecond()));
+					compactedStartEndPairs.add(new NodePair(startEndPairs.get(i2).getFirst(), startEndPairs.get(i2)
+							.getSecond()));
 				}
 			}
 			// Compact rotated pairs
-			if (compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).getSecond() == compactedStartEndPairs.get(0).getFirst()
-					&& compactedStartEndPairs.size() > 1) {
-				compactedStartEndPairs.get(0).setFirst(compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).getFirst());
+			if (compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).getSecond() == compactedStartEndPairs
+					.get(0).getFirst() && compactedStartEndPairs.size() > 1) {
+				compactedStartEndPairs.get(0).setFirst(compactedStartEndPairs.get(compactedStartEndPairs.size() - 1)
+						.getFirst());
 				compactedStartEndPairs.remove(compactedStartEndPairs.size() - 1);
 			}
 			Collections.sort(compactedStartEndPairs);
 			// Remove duplicate stretches, add unpaired, clipped ways
-			CustomWay affectedWay = clcMainWays.get((Integer) i);
+			CustomWay affectedWay = scModel.clcMainWays.get((Integer) i);
 
 			if (compactedStartEndPairs.size() == 1
-					&& ((affectedWay.isFullRound() && compactedStartEndPairs.get(0).getFirst() == compactedStartEndPairs.get(0).getSecond()) || (!affectedWay
-							.isFullRound() && compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.get(0).getSecond() == affectedWay
-							.getMembers().size() - 1))) {
+					&& ((affectedWay.isFullRound() && compactedStartEndPairs.get(0).getFirst() == compactedStartEndPairs
+							.get(0).getSecond()) || (!affectedWay.isFullRound()
+							&& compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.get(0)
+							.getSecond() == affectedWay.getMembers().size() - 1))) {
 				fullyReplacedWays.add(i);
 			} else if (!affectedWay.isFullRound()) {
 				// New ways
 				for (int i2 = 0; i2 < compactedStartEndPairs.size(); i2++) {
 					CustomWay newWay = new CustomWay();
-					if (i2 == compactedStartEndPairs.size() - 1) {
-						newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2).getSecond(),
-								affectedWay.getMembers().size()));
-					} else {
-						newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2).getSecond(),
-								compactedStartEndPairs.get(i2 + 1).getFirst() + 1));
-					}
-					if (!(i2 == 0 && compactedStartEndPairs.get(0).getFirst() == 0) && newWay.getMembers().size() > 1) {
-						newWay.setWayId(newWayId);
-						clcMainWays.put(newWayId, newWay);
-						clcMainRelations.get(Functions.getParentRelation(clcMainWays.get(affectedWay.getWayId()), clcMainRelations))
-								.addMember(new CustomRelationMember("way", newWayId, "outer"));
-						newWayId--;
+					try {
+						if (i2 == compactedStartEndPairs.size() - 1) {
+							newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2)
+									.getSecond(), affectedWay.getMembers().size()));
+						} else {
+							newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2)
+									.getSecond(), compactedStartEndPairs.get(i2 + 1).getFirst() + 1));
+						}
+						if (!(i2 == 0 && compactedStartEndPairs.get(0).getFirst() == 0)
+								&& newWay.getMembers().size() > 1) {
+							newWay.setWayId(newWayId);
+							scModel.clcMainWays.put(newWayId, newWay);
+							scModel.clcMainRelations
+									.get(Functions.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations))
+									.addMember(new CustomRelationMember("way", newWayId, "outer"));
+							newWayId--;
+						}
+					} catch (IllegalArgumentException e) {
+						System.out.println(e.getMessage());
 					}
 				}
 				// Remove stretches
-				int newStart = compactedStartEndPairs.get(0).getFirst() == 0 ? compactedStartEndPairs.get(0).getSecond() : 0;
+				int newStart = compactedStartEndPairs.get(0).getFirst() == 0 ? compactedStartEndPairs.get(0)
+						.getSecond() : 0;
 				int newEnd;
 				if (compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.size() == 1) {
 					newEnd = affectedWay.getMembers().size();
@@ -238,9 +250,11 @@ public class CLCCreator implements CLCProcessorConstants {
 						newWay.addMembers(affectedWay.getMembers().subList(start, end));
 
 						newWay.setWayId(newWayId);
-						clcMainWays.put(newWayId, newWay);
-						int parent = Functions.getParentRelation(clcMainWays.get(affectedWay.getWayId()), clcMainRelations);
-						clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way", newWayId, "outer"));
+						scModel.clcMainWays.put(newWayId, newWay);
+						int parent = Functions
+								.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations);
+						scModel.clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way", newWayId,
+								"outer"));
 						newWayId--;
 					} catch (IllegalArgumentException e) {
 						System.out.println(e.getMessage());
@@ -255,36 +269,38 @@ public class CLCCreator implements CLCProcessorConstants {
 				}
 				// Remove all other parts and rotate
 				else {
-					affectedWay.getMembers().removeAll(
-							affectedWay.getMembers().subList(compactedStartEndPairs.get(0).getFirst() + 1, last.getSecond()));
+					affectedWay.getMembers().removeAll(affectedWay.getMembers().subList(compactedStartEndPairs.get(0)
+							.getFirst() + 1, last.getSecond()));
 					Collections.rotate(affectedWay.getMembers(), -compactedStartEndPairs.get(0).getFirst() - 1);
 				}
 			}
 		}
 		// Add common ways to collections
-		for (WayPair w : wayPairList) {
+		for (WayPair w : scModel.wayPairList) {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				w.setNewWayId(newWayId, i);
-				clcMainWays.put(newWayId, w.getNewWay(i));
-				clcMainRelations.get(Functions.getParentRelation(clcMainWays.get(w.getFirst()), clcMainRelations)).addMember(
-						new CustomRelationMember("way", newWayId, "outer"));
-				clcMainRelations.get(Functions.getParentRelation(clcMainWays.get(w.getSecond()), clcMainRelations)).addMember(
-						new CustomRelationMember("way", newWayId, "outer"));
+				scModel.clcMainWays.put(newWayId, w.getNewWay(i));
+				scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getFirst()), scModel.clcMainRelations))
+						.addMember(new CustomRelationMember("way", newWayId, "outer"));
+				scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getSecond()), scModel.clcMainRelations))
+						.addMember(new CustomRelationMember("way", newWayId, "outer"));
 				newWayId--;
 			}
 		}
 		// Remove fully Replaced ways
 		for (Integer id : fullyReplacedWays) {
-			CustomRelation cr = clcMainRelations.get(Functions.getParentRelation(clcMainWays.get(id), clcMainRelations));
+			CustomRelation cr = scModel.clcMainRelations
+					.get(Functions.getParentRelation(scModel.clcMainWays.get(id), scModel.clcMainRelations));
 			cr.removeMemberWithWayId(id);
-			clcMainWays.remove((Integer) id);
+			scModel.clcMainWays.remove((Integer) id);
 		}
 	}
 
 	public void determineJunctions(WayPair w) {
-		CustomWay cwA = clcMainWays.get(w.getFirst());
-		CustomWay cwB = clcMainWays.get(w.getSecond());
-		System.out.println("Determine junctions: " + Integer.toString(cwA.getWayId()) + " - " + Integer.toString(cwB.getWayId()));
+		CustomWay cwA = scModel.clcMainWays.get(w.getFirst());
+		CustomWay cwB = scModel.clcMainWays.get(w.getSecond());
+		System.out.println("Determine junctions: " + Integer.toString(cwA.getWayId()) + " - "
+				+ Integer.toString(cwB.getWayId()));
 		boolean isCommon = false;
 
 		// remove last (duplicate) node from circular ways
@@ -343,8 +359,8 @@ public class CLCCreator implements CLCProcessorConstants {
 
 	private void setWayPairData(WayPair w, CustomWay cwA, CustomWay cwB) {
 		// Swap start and end if needed
-		int commonLength = w.getEndA(0) > w.getStartA(0) ? w.getEndA(0) - w.getStartA(0) : cwA.getMembers().size() + w.getEndA(0)
-				- w.getStartA(0);
+		int commonLength = w.getEndA(0) > w.getStartA(0) ? w.getEndA(0) - w.getStartA(0) : cwA.getMembers().size()
+				+ w.getEndA(0) - w.getStartA(0);
 		if (isBReversed(w.getStartB(0), w.getEndB(0), cwB.getMembers().size(), commonLength)) {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				int temp = w.getEndB(i);
@@ -392,7 +408,8 @@ public class CLCCreator implements CLCProcessorConstants {
 	}
 
 	public HashMap<Integer, CustomWay> readWays(File file, HashMap<Integer, CustomNode> clcMainNodes,
-			HashMap<Integer, CustomNode> clcNeighbourNodes) throws ParserConfigurationException, SAXException, IOException {
+			HashMap<Integer, CustomNode> clcNeighbourNodes) throws ParserConfigurationException, SAXException,
+			IOException {
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
 		HashMap<Integer, CustomWay> clcMainWays = new HashMap<Integer, CustomWay>();
@@ -551,7 +568,8 @@ public class CLCCreator implements CLCProcessorConstants {
 		return result;
 	}
 
-	private void searchIntersection(ArrayList<CustomPolygon> aggregatePolygonMembers, CustomPolygon vp, boolean[] result, int i) {
+	private void searchIntersection(ArrayList<CustomPolygon> aggregatePolygonMembers, CustomPolygon vp,
+			boolean[] result, int i) {
 		for (CustomPolygon vpToCompare : aggregatePolygonMembers) {
 			if (!vp.equals(vpToCompare)) {
 				for (CustomNode vnToCompare : vpToCompare.getVillageNodes()) {
@@ -574,8 +592,8 @@ public class CLCCreator implements CLCProcessorConstants {
 		do {
 			if (result.size() == 0) {
 				System.out.println(Integer.toString(ways.get(0).getMembers().get(0)) + "-"
-						+ Integer.toString(ways.get(0).getMembers().get(ways.get(0).getMembers().size() - 1)) + " size: "
-						+ Integer.toString(ways.get(0).getMembers().size()));
+						+ Integer.toString(ways.get(0).getMembers().get(ways.get(0).getMembers().size() - 1))
+						+ " size: " + Integer.toString(ways.get(0).getMembers().size()));
 				for (int i = 0; i < ways.get(0).getMembers().size(); i++) {
 					result.add(scModel.villageNodesMap.get(ways.get(0).getMembers().get(i)));
 				}
@@ -587,8 +605,8 @@ public class CLCCreator implements CLCProcessorConstants {
 					i++;
 					if (ways.get(i).containsNode(lastNode.getNodeId()) >= 0) {
 						System.out.println(Integer.toString(ways.get(i).getMembers().get(0)) + "-"
-								+ Integer.toString(ways.get(i).getMembers().get(ways.get(i).getMembers().size() - 1)) + " size: "
-								+ Integer.toString(ways.get(i).getMembers().size()));
+								+ Integer.toString(ways.get(i).getMembers().get(ways.get(i).getMembers().size() - 1))
+								+ " size: " + Integer.toString(ways.get(i).getMembers().size()));
 						result.remove(result.size() - 1);
 						result.addAll(getVillageNodes(ways.get(i), lastNode));
 					}

@@ -24,7 +24,7 @@ import org.eclipse.swt.widgets.Monitor;
 import org.eclipse.swt.widgets.Shell;
 import org.eclipse.swt.widgets.Text;
 
-public class SettlementChooserView implements java.util.Observer {
+public class InputFileChooserView implements java.util.Observer {
 
 	public Display display;
 	public Shell shell;
@@ -38,7 +38,7 @@ public class SettlementChooserView implements java.util.Observer {
 			excludedNeighbourList;
 	private Button excludeButton;
 
-	public SettlementChooserView() {
+	public InputFileChooserView() {
 		display = new Display();
 		shell = new Shell(display);
 		Monitor primary = display.getPrimaryMonitor();
@@ -274,9 +274,6 @@ public class SettlementChooserView implements java.util.Observer {
 			}
 			polygonListSC.setMinSize(polygonListSC.computeSize(SWT.DEFAULT,
 					SWT.DEFAULT));
-		}else if (arg instanceof String) {
-			String status = (String) arg;
-			progressLabel.setText(status);
 		}
 
 	}

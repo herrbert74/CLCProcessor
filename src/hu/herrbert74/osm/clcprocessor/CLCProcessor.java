@@ -35,7 +35,7 @@ public class CLCProcessor implements CLCProcessorConstants {
 		scView.shell.open();
 		
 		try {
-			scModel.read(new File(OSM_VILLAGEBORDERS));
+			scController.readBorders(new File(OSM_VILLAGEBORDERS));
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
 		}

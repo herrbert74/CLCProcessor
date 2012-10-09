@@ -1,9 +1,6 @@
 package hu.herrbert74.osm.clcprocessor.controllers;
 
 import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
-import hu.herrbert74.osm.clcprocessor.dao.OsmNodesHandler;
-import hu.herrbert74.osm.clcprocessor.dao.OsmRelationsHandler;
-import hu.herrbert74.osm.clcprocessor.dao.OsmWaysHandler;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
@@ -28,7 +25,7 @@ import org.eclipse.swt.events.MouseEvent;
 import org.eclipse.swt.widgets.List;
 import org.xml.sax.SAXException;
 
-public class SettlementChooserController implements CLCProcessorConstants,
+public class InputFileChooserController implements CLCProcessorConstants,
 		org.eclipse.swt.events.MouseListener,
 		org.eclipse.swt.events.MouseWheelListener,
 		org.eclipse.swt.events.MouseMoveListener,
@@ -116,25 +113,6 @@ public class SettlementChooserController implements CLCProcessorConstants,
 		default:
 			break;
 		}
-	}
-	
-	public void readBorders(File file) throws ParserConfigurationException, SAXException, IOException {
-		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
-		SAXParser parser = parserFactory.newSAXParser();
-
-		OsmRelationsHandler relationsHandler = new OsmRelationsHandler();
-		parser.parse(file, relationsHandler);
-		scModel.villageRelationsMap = relationsHandler.getRelations();
-
-		OsmWaysHandler waysHandler = new OsmWaysHandler();
-		parser.parse(file, waysHandler);
-		scModel.villageWaysMap = waysHandler.getWays();
-
-		OsmNodesHandler nodesHandler = new OsmNodesHandler();
-		parser.parse(file, nodesHandler);
-		scModel.villageNodesMap = nodesHandler.getNodes();
-
-		scModel.createVillagePolygons();
 	}
 	
 	private void checkNeighbours(List list) {
