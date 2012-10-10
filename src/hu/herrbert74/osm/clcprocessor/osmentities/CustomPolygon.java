@@ -40,6 +40,85 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 													// circular!
 		ArrayList<CustomWay> result = new ArrayList<CustomWay>();
 		boolean isIntersection = false;
+		ArrayList<Integer> startNodes = new ArrayList<Integer>();
+		ArrayList<Integer> endNodes = new ArrayList<Integer>();
+		for (int i = 0; i < resultNodes.size(); i++) {
+			if (is.getIntersections().contains(villageNodes.get(i))) {
+				if (!isIntersection) {
+					endNodes.add(i - 1);
+					isIntersection = true;
+				}
+			} else if (is.getTwoNodeIntersections().contains(villageNodes.get(i))) {
+				if (isIntersection) {
+					startNodes.add(i);
+					isIntersection = false;
+				} else {
+					// If it starts with a twonodeIntersection, we have to check
+					// whether the next is also a twonodeI. If yes, then this is
+					// an endnode. Otherwise start.
+					if (i == 0) {
+						if (is.getTwoNodeIntersections().contains(villageNodes.get(i + 1))) {
+							endNodes.add(i);
+							isIntersection = true;
+						} else {
+							startNodes.add(i);
+							isIntersection = false;
+						}
+					}else{
+						endNodes.add(i);
+						isIntersection = true;
+					}
+				}
+
+			}
+			// borderway
+			else {
+				if (isIntersection) {
+					startNodes.add(i);
+					isIntersection = false;
+				}
+			}
+		}
+		if (endNodes.size() > startNodes.size()) {
+			// Remove false end node
+			if (is.getIntersections().contains(villageNodes.get(0))) {
+
+				endNodes.remove(0);
+			}
+			// Add start node if intersection starts right at node 0
+			else {
+				startNodes.add(0);
+			}
+		}
+		if(endNodes.get(0) < startNodes.get(0)){
+			Collections.rotate(endNodes, -1);
+		}
+		for (int i = 0; i < startNodes.size(); i++) {
+			ArrayList<CustomNode> copyOfResultNodes = new ArrayList<CustomNode>();
+			copyOfResultNodes.addAll(getVillageNodes());
+			copyOfResultNodes.remove(copyOfResultNodes.size() - 1);
+			// Starting node goes first
+			Collections.rotate(copyOfResultNodes, -startNodes.get(i));
+			// Cut off the intersecting nodes on the end
+			int size = endNodes.get(i) > startNodes.get(i) ? endNodes.get(i) - startNodes.get(i)
+					: copyOfResultNodes.size() + endNodes.get(i) - startNodes.get(i);
+			resultNodes = new ArrayList<CustomNode>(copyOfResultNodes.subList(0, size + 1));
+			CustomWay newWay = new CustomWay();
+			for (CustomNode cn : resultNodes) {
+				newWay.getMembers().add(cn.getNodeId());
+			}
+			result.add(newWay);
+		}
+		return result;
+	}
+
+	public ArrayList<CustomWay> getBorderWays2(Intersections is) {
+		ArrayList<CustomNode> resultNodes = new ArrayList<CustomNode>();
+		resultNodes.addAll(getVillageNodes());
+		resultNodes.remove(resultNodes.size() - 1); // ResultNodes aren't
+													// circular!
+		ArrayList<CustomWay> result = new ArrayList<CustomWay>();
+		boolean isIntersection = false;
 		ArrayList<Integer> iSStart = new ArrayList<Integer>();
 		ArrayList<Integer> iSEnd = new ArrayList<Integer>();
 		ArrayList<Integer> nonISStart = new ArrayList<Integer>();
@@ -75,8 +154,8 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 			int i2 = i == iSStart.size() - 1 ? 0 : i + 1;
 			nonISEnd.add((iSStart.get(i2) == 0) ? result.size() - 1 : iSStart.get(i2) - 1);
 		}
-		
-		//Add forbiddenedges
+
+		// Add forbiddenedges
 		for (int i = 0; i < is.getForbiddenEdges().size(); i++) {
 			nonISStart.add(is.getForbiddenEdges().get(i).getSecond());
 			nonISEnd.add(is.getForbiddenEdges().get(i).getFirst());
@@ -84,7 +163,7 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 		Collections.sort(nonISEnd);
 		Collections.sort(nonISStart);
 		Collections.rotate(nonISEnd, -1);
-		
+
 		// New ways
 		for (int i = 0; i < nonISStart.size(); i++) {
 			ArrayList<CustomNode> copyOfResultNodes = new ArrayList<CustomNode>();

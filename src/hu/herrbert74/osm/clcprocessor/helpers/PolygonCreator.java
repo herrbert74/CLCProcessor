@@ -50,7 +50,7 @@ public class PolygonCreator {
 			boolean[] isEnd = new boolean[vp.getVillageNodes().size()];
 			isEnd = getEndNodes(isNodes);
 			ArrayList<NodePair> forbiddenEdges = new ArrayList<NodePair>();
-			forbiddenEdges = getForbiddenEdges(isStart, isEnd);
+			//forbiddenEdges = getForbiddenEdges(isStart, isEnd);
 			HashSet<CustomNode> twoNodeIntersections = new HashSet<CustomNode>();
 			twoNodeIntersections = getTwoNodeIntersections(vp, isStart, isEnd);
 			result.addStartsAndEnds(vp, isStart, isEnd);
@@ -95,7 +95,7 @@ public class PolygonCreator {
 		return result;
 	}
 
-	private ArrayList<NodePair> getForbiddenEdges(boolean[] isStart, boolean[] isEnd) {
+	/*private ArrayList<NodePair> getForbiddenEdges(boolean[] isStart, boolean[] isEnd) {
 		ArrayList<NodePair> result = new ArrayList<NodePair>();
 		for (int i = 0; i < isStart.length - 1; i++) {
 			if (isStart[i] && isEnd[i + 1]) {
@@ -103,7 +103,7 @@ public class PolygonCreator {
 			}
 		}
 		return result;
-	}
+	}*/
 	
 	//TwoNodeIntersections: just remove the edge, not the nodes from resultset. Have to split the resultset here
 	private HashSet<CustomNode> getTwoNodeIntersections(CustomPolygon vp, boolean[] isStart, boolean[] isEnd) {
