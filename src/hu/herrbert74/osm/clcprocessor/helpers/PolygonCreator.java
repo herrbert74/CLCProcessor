@@ -33,25 +33,26 @@ public class PolygonCreator {
 		ArrayList<CustomWay> ways = new ArrayList<CustomWay>();
 		is = findIntersections(polygonList);
 		for (CustomPolygon vp : polygonList) {
-			ways.addAll(vp.split(is));
+			ways.addAll(vp.getBorderWays(is));
 		}
 		ArrayList<CustomNode> result = concatenateWays(ways);
 		result.add(result.get(0));
 		return result;
 	}
 
-	private Intersections findIntersections(ArrayList<CustomPolygon> aggregatePolygonMembers) {
+	private Intersections findIntersections(ArrayList<CustomPolygon> polygonList) {
 		Intersections result = new Intersections();
-		for (CustomPolygon vp : aggregatePolygonMembers) {
+		for (CustomPolygon vp : polygonList) {
 			boolean[] isNodes = new boolean[vp.getVillageNodes().size()];
-			isNodes = getIntersectionNodes(aggregatePolygonMembers, vp);
+			isNodes = getIntersectionNodes(polygonList, vp);
 			boolean[] isStart = new boolean[vp.getVillageNodes().size()];
 			isStart = getStartNodes(isNodes);
 			boolean[] isEnd = new boolean[vp.getVillageNodes().size()];
 			isEnd = getEndNodes(isNodes);
 			ArrayList<NodePair> forbiddenEdges = new ArrayList<NodePair>();
 			forbiddenEdges = getForbiddenEdges(isStart, isEnd);
-			//isNodes = unsetStartsAndEnds(isNodes, isStart, isEnd);
+			HashSet<CustomNode> twoNodeIntersections = new HashSet<CustomNode>();
+			twoNodeIntersections = getTwoNodeIntersections(vp, isStart, isEnd);
 			result.addStartsAndEnds(vp, isStart, isEnd);
 			HashSet<CustomNode> nodes = new HashSet<CustomNode>();
 			for (int i = 0; i < vp.getVillageNodes().size() - 1; i++) {
@@ -61,6 +62,7 @@ public class PolygonCreator {
 			}
 			result.addIntersections(nodes);
 			result.addForbiddenEdges(forbiddenEdges);
+			result.addTwoNodeIntersections(twoNodeIntersections);
 		}
 		result.unsetStartsAndEnds();
 		return result;
@@ -94,20 +96,25 @@ public class PolygonCreator {
 	}
 
 	private ArrayList<NodePair> getForbiddenEdges(boolean[] isStart, boolean[] isEnd) {
-		ArrayList<NodePair> np = new ArrayList<NodePair>();
+		ArrayList<NodePair> result = new ArrayList<NodePair>();
 		for (int i = 0; i < isStart.length - 1; i++) {
 			if (isStart[i] && isEnd[i + 1]) {
-				np.add(new NodePair(i, i + 1));
+				result.add(new NodePair(i, i + 1));
 			}
 		}
-		return np;
+		return result;
 	}
-
-	private boolean[] unsetStartsAndEnds(boolean[] isNodes, boolean[] isStart, boolean[] isEnd) {
-		for (int i = 0; i < isNodes.length; i++) {
-			isNodes[i] = isNodes[i] && (!(isStart[i] || isEnd[i]));
+	
+	//TwoNodeIntersections: just remove the edge, not the nodes from resultset. Have to split the resultset here
+	private HashSet<CustomNode> getTwoNodeIntersections(CustomPolygon vp, boolean[] isStart, boolean[] isEnd) {
+		HashSet<CustomNode> result = new HashSet<CustomNode>();
+		for (int i = 0; i < isStart.length - 1; i++) {
+			if (isStart[i] && isEnd[i + 1]) {
+				result.add(vp.getVillageNodes().get(i));
+				result.add(vp.getVillageNodes().get(i + 1));
+			}
 		}
-		return isNodes;
+		return result;
 	}
 
 	private boolean[] getIntersectionNodes(ArrayList<CustomPolygon> aggregatePolygonMembers, CustomPolygon vp) {
@@ -121,13 +128,12 @@ public class PolygonCreator {
 	private ArrayList<CustomNode> concatenateWays(ArrayList<CustomWay> ways) {
 		ArrayList<CustomNode> result = new ArrayList<CustomNode>();
 		for (int i = 0; i < ways.size(); i++) {
-			System.out.println(Integer.toString(ways.get(i).getMembers().get(0)) + "-"
+			System.out.println("Border ways: " + Integer.toString(ways.get(i).getMembers().get(0)) + "-"
 					+ Integer.toString(ways.get(i).getMembers().get(ways.get(i).getMembers().size() - 1)));
-
 		}
 		do {
 			if (result.size() == 0) {
-				System.out.println(Integer.toString(ways.get(0).getMembers().get(0)) + "-"
+				System.out.println("Concatenating border ways: " + Integer.toString(ways.get(0).getMembers().get(0)) + "-"
 						+ Integer.toString(ways.get(0).getMembers().get(ways.get(0).getMembers().size() - 1))
 						+ " size: " + Integer.toString(ways.get(0).getMembers().size()));
 				for (int i = 0; i < ways.get(0).getMembers().size(); i++) {
@@ -140,7 +146,7 @@ public class PolygonCreator {
 				do {
 					i++;
 					if (ways.get(i).containsNode(lastNode.getNodeId()) >= 0) {
-						System.out.println(Integer.toString(ways.get(i).getMembers().get(0)) + "-"
+						System.out.println("Concatenating border ways: " + Integer.toString(ways.get(i).getMembers().get(0)) + "-"
 								+ Integer.toString(ways.get(i).getMembers().get(ways.get(i).getMembers().size() - 1))
 								+ " size: " + Integer.toString(ways.get(i).getMembers().size()));
 						result.remove(result.size() - 1);

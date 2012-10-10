@@ -33,8 +33,7 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 		return nameCmp;
 	}
 
-	// NOTE: Result contains only one way for now!
-	public ArrayList<CustomWay> split(Intersections is) {
+	public ArrayList<CustomWay> getBorderWays(Intersections is) {
 		ArrayList<CustomNode> resultNodes = new ArrayList<CustomNode>();
 		resultNodes.addAll(getVillageNodes());
 		resultNodes.remove(resultNodes.size() - 1); // ResultNodes aren't
@@ -70,14 +69,24 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 				iSEnd.add(result.size() - 1);
 			}
 		}
-		// Add starting and ending nodes to result
+		// We need the non-intersecting nodes
 		for (int i = 0; i < iSStart.size(); i++) {
 			nonISStart.add((iSEnd.get(i) == result.size() - 1) ? 0 : iSEnd.get(i) + 1);
 			int i2 = i == iSStart.size() - 1 ? 0 : i + 1;
 			nonISEnd.add((iSStart.get(i2) == 0) ? result.size() - 1 : iSStart.get(i2) - 1);
 		}
+		
+		//Add forbiddenedges
+		for (int i = 0; i < is.getForbiddenEdges().size(); i++) {
+			nonISStart.add(is.getForbiddenEdges().get(i).getSecond());
+			nonISEnd.add(is.getForbiddenEdges().get(i).getFirst());
+		}
+		Collections.sort(nonISEnd);
+		Collections.sort(nonISStart);
+		Collections.rotate(nonISEnd, -1);
+		
 		// New ways
-		for (int i = 0; i < iSStart.size(); i++) {
+		for (int i = 0; i < nonISStart.size(); i++) {
 			ArrayList<CustomNode> copyOfResultNodes = new ArrayList<CustomNode>();
 			copyOfResultNodes.addAll(getVillageNodes());
 			// Starting node goes first

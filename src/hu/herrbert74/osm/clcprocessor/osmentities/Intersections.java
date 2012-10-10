@@ -6,20 +6,28 @@ import java.util.HashSet;
 public class Intersections {
 	HashSet<CustomNode> intersections;
 	HashSet<CustomNode> startsAndEnds;
+	HashSet<CustomNode> twoNodeIntersections;
 	ArrayList<NodePair> forbiddenEdges;
 
 	public Intersections() {
 		intersections = new HashSet<CustomNode>();
 		forbiddenEdges = new ArrayList<NodePair>();
-		startsAndEnds = new HashSet<CustomNode>();		
+		startsAndEnds = new HashSet<CustomNode>();
+		twoNodeIntersections = new HashSet<CustomNode>();
 	}
 
-	public Intersections(HashSet<CustomNode> intersections, ArrayList<NodePair> forbiddenEdges) {
-		super();
-		this.intersections = intersections;
-		this.forbiddenEdges = forbiddenEdges;
+	public HashSet<CustomNode> getTwoNodeIntersections() {
+		return twoNodeIntersections;
 	}
 
+	public void setTwoNodeIntersections(HashSet<CustomNode> twoNodeIntersections) {
+		this.twoNodeIntersections = twoNodeIntersections;
+	}
+
+	public void addTwoNodeIntersections(HashSet<CustomNode> twoNodeIntersections) {
+		this.twoNodeIntersections.addAll(twoNodeIntersections);
+	}
+	
 	public HashSet<CustomNode> getIntersections() {
 		return intersections;
 	}
