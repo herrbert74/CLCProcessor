@@ -5,6 +5,7 @@ import hu.herrbert74.osm.clcprocessor.dao.OsmNodesHandler;
 import hu.herrbert74.osm.clcprocessor.dao.OsmRelationsHandler;
 import hu.herrbert74.osm.clcprocessor.dao.OsmWaysHandler;
 import hu.herrbert74.osm.clcprocessor.dao.XMLFunctions;
+import hu.herrbert74.osm.clcprocessor.helpers.CLCCreator;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
@@ -122,14 +123,17 @@ public class SettlementChooserController implements CLCProcessorConstants,
 		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
 		SAXParser parser = parserFactory.newSAXParser();
 
+		scModel.setStatus("Reading border relations");
 		OsmRelationsHandler relationsHandler = new OsmRelationsHandler();
 		parser.parse(file, relationsHandler);
 		scModel.villageRelationsMap = relationsHandler.getRelations();
 
+		scModel.setStatus("Reading border ways");
 		OsmWaysHandler waysHandler = new OsmWaysHandler();
 		parser.parse(file, waysHandler);
 		scModel.villageWaysMap = waysHandler.getWays();
 
+		scModel.setStatus("Reading border nodes");
 		OsmNodesHandler nodesHandler = new OsmNodesHandler();
 		parser.parse(file, nodesHandler);
 		scModel.villageNodesMap = nodesHandler.getNodes();

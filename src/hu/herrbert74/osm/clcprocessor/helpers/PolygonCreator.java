@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor.controllers;
+package hu.herrbert74.osm.clcprocessor.helpers;
 
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
@@ -51,7 +51,7 @@ public class PolygonCreator {
 			isEnd = getEndNodes(isNodes);
 			ArrayList<NodePair> forbiddenEdges = new ArrayList<NodePair>();
 			forbiddenEdges = getForbiddenEdges(isStart, isEnd);
-			// isNodes = unsetStartsAndEnds(isNodes, isStart, isEnd);
+			//isNodes = unsetStartsAndEnds(isNodes, isStart, isEnd);
 			result.addStartsAndEnds(vp, isStart, isEnd);
 			HashSet<CustomNode> nodes = new HashSet<CustomNode>();
 			for (int i = 0; i < vp.getVillageNodes().size() - 1; i++) {

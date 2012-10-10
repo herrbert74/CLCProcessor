@@ -1,4 +1,4 @@
-package hu.herrbert74.osm.clcprocessor.controllers;
+package hu.herrbert74.osm.clcprocessor.helpers;
 
 import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
 import hu.herrbert74.osm.clcprocessor.dao.CLCNodesHandler;
@@ -43,49 +43,12 @@ public class CLCCreator implements CLCProcessorConstants {
 		scModel.borderPolygon = pc.createBorderPolygon(scView.settlementList.getItems());
 		scModel.setStatus("Creating neighbour polygon");
 		scModel.neighbourPolygon = pc.createBorderPolygon(scView.neighbourList.getItems());
-		readCLCData();
+		CLCReader clcReader = new CLCReader(scModel);
+		clcReader.readCLCData();
 		convertPureWaysToRelations();
 		createWayPairs();
 		splitWaysAndUpdateRelations();
 		XMLFunctions.writeOSM(scModel.clcMainNodes, scModel.clcMainWays, scModel.clcMainRelations, "clc_out.osm");
-	}
-
-	private void readCLCData() {
-
-		scModel.setStatus("Reading nodes");
-		try {
-			ArrayList<HashMap<Integer, CustomNode>> list = readNodes(new File(OSM_CLCDATA), scModel.borderPolygon, scModel.neighbourPolygon);
-			scModel.clcMainNodes = list.get(0);
-			scModel.clcNeighbourNodes = list.get(1);
-		} catch (ParserConfigurationException | SAXException | IOException e) {
-			e.printStackTrace();
-		}
-		scModel.setStatus("Reading ways");
-		try {
-			scModel.clcMainWays = readWays(new File(OSM_CLCDATA), scModel.clcMainNodes, scModel.clcMainNodes);
-		} catch (ParserConfigurationException | SAXException | IOException e) {
-			e.printStackTrace();
-		}
-		scModel.setStatus("Reading relations");
-		try {
-			scModel.clcMainRelations = readRelations(new File(OSM_CLCDATA), scModel.clcMainWays);
-		} catch (ParserConfigurationException | SAXException | IOException e) {
-			e.printStackTrace();
-		}
-		
-		addUsedNeighbourNodesToMainNodes();
-	}
-
-	private void addUsedNeighbourNodesToMainNodes() {
-		for (CustomWay vw : scModel.clcMainWays.values()) {
-			for (int i = 0; i < vw.getMembers().size(); i++) {
-				if (scModel.clcNeighbourNodes.containsKey(vw.getMembers().get(i))) {
-					scModel.clcMainNodes.put(vw.getMembers().get(i), scModel.clcNeighbourNodes.get((Integer) vw
-							.getMembers().get(i)));
-				}
-			}
-		}
-
 	}
 
 	private void convertPureWaysToRelations() {
@@ -121,13 +84,6 @@ public class CLCCreator implements CLCProcessorConstants {
 			for (int i = 0; i < cr.getMembers().size(); i++) {
 				if (cr.getMembers().get(i).getRole().equals("outer")) {
 					for (CustomRelation otherCr : scModel.clcMainRelations.values()) {
-						/*
-						 * System.out.println(
-						 * "Checking way and relation for WayPair: " +
-						 * Integer.toString(cr.getMembers().get(i).getRef()) +
-						 * " relation: " +
-						 * Integer.toString(otherCr.getRelationId()));
-						 */
 						int overLappingWayId = otherCr
 								.getOverLappingMember(cr.getMembers().get(i).getRef(), scModel.clcMainWays, scModel.clcMainNodes);
 						if (overLappingWayId != -1) {
@@ -394,49 +350,5 @@ public class CLCCreator implements CLCProcessorConstants {
 			return false;
 		}
 		return true;
-	}
-
-	public ArrayList<HashMap<Integer, CustomNode>> readNodes(File file, ArrayList<CustomNode> mainPolygon,
-			ArrayList<CustomNode> neighbourPolygon) throws ParserConfigurationException, SAXException, IOException {
-		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
-		SAXParser parser = parserFactory.newSAXParser();
-		HashMap<Integer, CustomNode> clcMainNodes = new HashMap<Integer, CustomNode>();
-		HashMap<Integer, CustomNode> clcNeighbourNodes = new HashMap<Integer, CustomNode>();
-
-		CLCNodesHandler nodesHandler = new CLCNodesHandler(mainPolygon, neighbourPolygon);
-		parser.parse(file, nodesHandler);
-		clcMainNodes = nodesHandler.getMainNodes();
-		clcNeighbourNodes = nodesHandler.getNeighbourNodes();
-		ArrayList<HashMap<Integer, CustomNode>> list = new ArrayList<HashMap<Integer, CustomNode>>();
-		list.add(clcMainNodes);
-		list.add(clcNeighbourNodes);
-		return list;
-	}
-
-	public HashMap<Integer, CustomWay> readWays(File file, HashMap<Integer, CustomNode> clcMainNodes,
-			HashMap<Integer, CustomNode> clcNeighbourNodes) throws ParserConfigurationException, SAXException,
-			IOException {
-		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
-		SAXParser parser = parserFactory.newSAXParser();
-		HashMap<Integer, CustomWay> clcMainWays = new HashMap<Integer, CustomWay>();
-
-		CLCWaysHandler waysHandler = new CLCWaysHandler(clcMainNodes, clcNeighbourNodes);
-		parser.parse(file, waysHandler);
-		clcMainWays = waysHandler.getWays();
-
-		return clcMainWays;
-	}
-
-	public HashMap<Integer, CustomRelation> readRelations(File file, HashMap<Integer, CustomWay> clcMainWays)
-			throws ParserConfigurationException, SAXException, IOException {
-		SAXParserFactory parserFactory = SAXParserFactory.newInstance();
-		SAXParser parser = parserFactory.newSAXParser();
-		HashMap<Integer, CustomRelation> clcMainRelations = new HashMap<Integer, CustomRelation>();
-
-		CLCRelationsHandler relationsHandler = new CLCRelationsHandler(clcMainWays);
-		parser.parse(file, relationsHandler);
-		clcMainRelations = relationsHandler.getRelations();
-
-		return clcMainRelations;
 	}
 }
