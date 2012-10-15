@@ -1,12 +1,8 @@
 package hu.herrbert74.osm.clcprocessor.helpers;
 
 import hu.herrbert74.osm.clcprocessor.CLCProcessorConstants;
-import hu.herrbert74.osm.clcprocessor.dao.CLCNodesHandler;
-import hu.herrbert74.osm.clcprocessor.dao.CLCRelationsHandler;
-import hu.herrbert74.osm.clcprocessor.dao.CLCWaysHandler;
 import hu.herrbert74.osm.clcprocessor.dao.XMLFunctions;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
-import hu.herrbert74.osm.clcprocessor.osmentities.CustomNode;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelation;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomRelationMember;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomWay;
@@ -15,20 +11,11 @@ import hu.herrbert74.osm.clcprocessor.osmentities.WayPair;
 import hu.herrbert74.osm.clcprocessor.utils.Functions;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
 
-import java.io.File;
-import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.Map;
-
-import javax.xml.parsers.ParserConfigurationException;
-import javax.xml.parsers.SAXParser;
-import javax.xml.parsers.SAXParserFactory;
-
-import org.xml.sax.SAXException;
 
 public class CLCCreator implements CLCProcessorConstants {
 
@@ -65,8 +52,7 @@ public class CLCCreator implements CLCProcessorConstants {
 			}
 			if (pureWay) {
 				newRelationId--;
-				CustomRelation cr = new CustomRelation(new CustomRelationMember("way", cw.getWayId(), "outer"),
-						newRelationId);
+				CustomRelation cr = new CustomRelation(new CustomRelationMember("way", cw.getWayId(), "outer"), newRelationId);
 				Iterator<Map.Entry<String, String>> it = cw.getTags().entrySet().iterator();
 				while (it.hasNext()) {
 					Map.Entry<String, String> pairs = (Map.Entry<String, String>) it.next();
@@ -84,18 +70,16 @@ public class CLCCreator implements CLCProcessorConstants {
 			for (int i = 0; i < cr.getMembers().size(); i++) {
 				if (cr.getMembers().get(i).getRole().equals("outer")) {
 					for (CustomRelation otherCr : scModel.clcMainRelations.values()) {
-						int overLappingWayId = otherCr
-								.getOverLappingMember(cr.getMembers().get(i).getRef(), scModel.clcMainWays, scModel.clcMainNodes);
+						int overLappingWayId = otherCr.getOverLappingMember(cr.getMembers().get(i).getRef(), scModel.clcMainWays,
+								scModel.clcMainNodes);
 						if (overLappingWayId != -1) {
 							WayPair w = new WayPair(cr.getMembers().get(i).getRef(), overLappingWayId);
 							if (!scModel.wayPairList.contains(w)) {
-								System.out.println("Added WayPair: "
-										+ Integer.toString(cr.getMembers().get(i).getRef())
+								System.out.println("Added WayPair: " + Integer.toString(cr.getMembers().get(i).getRef())
 										+ Integer.toString(overLappingWayId));
 								scModel.wayPairList.add(w);
 							} else {
-								System.out.println("Discarded WayPair: "
-										+ Integer.toString(cr.getMembers().get(i).getRef())
+								System.out.println("Discarded WayPair: " + Integer.toString(cr.getMembers().get(i).getRef())
 										+ Integer.toString(overLappingWayId));
 							}
 						}
@@ -138,18 +122,15 @@ public class CLCCreator implements CLCProcessorConstants {
 			// Compact it!
 			for (int i2 = 1; i2 < startEndPairs.size(); i2++) {
 				if (startEndPairs.get(i2 - 1).getSecond() == startEndPairs.get(i2).getFirst()) {
-					compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).setSecond(startEndPairs.get(i2)
-							.getSecond());
+					compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).setSecond(startEndPairs.get(i2).getSecond());
 				} else {
-					compactedStartEndPairs.add(new NodePair(startEndPairs.get(i2).getFirst(), startEndPairs.get(i2)
-							.getSecond()));
+					compactedStartEndPairs.add(new NodePair(startEndPairs.get(i2).getFirst(), startEndPairs.get(i2).getSecond()));
 				}
 			}
 			// Compact rotated pairs
-			if (compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).getSecond() == compactedStartEndPairs
-					.get(0).getFirst() && compactedStartEndPairs.size() > 1) {
-				compactedStartEndPairs.get(0).setFirst(compactedStartEndPairs.get(compactedStartEndPairs.size() - 1)
-						.getFirst());
+			if (compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).getSecond() == compactedStartEndPairs.get(0).getFirst()
+					&& compactedStartEndPairs.size() > 1) {
+				compactedStartEndPairs.get(0).setFirst(compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).getFirst());
 				compactedStartEndPairs.remove(compactedStartEndPairs.size() - 1);
 			}
 			Collections.sort(compactedStartEndPairs);
@@ -157,10 +138,9 @@ public class CLCCreator implements CLCProcessorConstants {
 			CustomWay affectedWay = scModel.clcMainWays.get((Integer) i);
 
 			if (compactedStartEndPairs.size() == 1
-					&& ((affectedWay.isFullRound() && compactedStartEndPairs.get(0).getFirst() == compactedStartEndPairs
-							.get(0).getSecond()) || (!affectedWay.isFullRound()
-							&& compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.get(0)
-							.getSecond() == affectedWay.getMembers().size() - 1))) {
+					&& ((affectedWay.isFullRound() && compactedStartEndPairs.get(0).getFirst() == compactedStartEndPairs.get(0).getSecond()) || (!affectedWay
+							.isFullRound() && compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.get(0).getSecond() == affectedWay
+							.getMembers().size() - 1))) {
 				fullyReplacedWays.add(i);
 			} else if (!affectedWay.isFullRound()) {
 				// New ways
@@ -168,28 +148,26 @@ public class CLCCreator implements CLCProcessorConstants {
 					CustomWay newWay = new CustomWay();
 					try {
 						if (i2 == compactedStartEndPairs.size() - 1) {
-							newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2)
-									.getSecond(), affectedWay.getMembers().size()));
+							newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2).getSecond(),
+									affectedWay.getMembers().size()));
 						} else {
-							newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2)
-									.getSecond(), compactedStartEndPairs.get(i2 + 1).getFirst() + 1));
+							newWay.addMembers(affectedWay.getMembers().subList(compactedStartEndPairs.get(i2).getSecond(),
+									compactedStartEndPairs.get(i2 + 1).getFirst() + 1));
 						}
-						if (!(i2 == 0 && compactedStartEndPairs.get(0).getFirst() == 0)
-								&& newWay.getMembers().size() > 1) {
+						if (!(i2 == 0 && compactedStartEndPairs.get(0).getFirst() == 0) && newWay.getMembers().size() > 1) {
 							newWay.setWayId(newWayId);
 							scModel.clcMainWays.put(newWayId, newWay);
-							scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays
-									.get(affectedWay.getWayId()), scModel.clcMainRelations))
+							scModel.clcMainRelations.get(
+									Functions.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations))
 									.addMember(new CustomRelationMember("way", newWayId, "outer"));
 							newWayId--;
 						}
 					} catch (IllegalArgumentException e) {
-						System.out.println(e.getMessage());
+						System.out.println("Fullround, New way 1 IllegalArgumentException!" + e.getMessage());
 					}
 				}
 				// Remove stretches
-				int newStart = compactedStartEndPairs.get(0).getFirst() == 0 ? compactedStartEndPairs.get(0)
-						.getSecond() : 0;
+				int newStart = compactedStartEndPairs.get(0).getFirst() == 0 ? compactedStartEndPairs.get(0).getSecond() : 0;
 				int newEnd;
 				if (compactedStartEndPairs.get(0).getFirst() == 0 && compactedStartEndPairs.size() == 1) {
 					newEnd = affectedWay.getMembers().size();
@@ -211,26 +189,29 @@ public class CLCCreator implements CLCProcessorConstants {
 
 						newWay.setWayId(newWayId);
 						scModel.clcMainWays.put(newWayId, newWay);
-						int parent = Functions
-								.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations);
-						scModel.clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way",
-								newWayId, "outer"));
+						int parent = Functions.getParentRelation(scModel.clcMainWays.get(affectedWay.getWayId()), scModel.clcMainRelations);
+						scModel.clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way", newWayId, "outer"));
 						newWayId--;
 					} catch (IllegalArgumentException e) {
-						System.out.println(e.getMessage());
+						System.out.println("Not full round, New way 2 IllegalArgumentException!" + e.getMessage());
 					}
 				}
 				// Reduce affected way
-				// Get a sublist if affectedWay stars with commonWay
+				// Get a sublist if affectedWay starts with commonWay
 				NodePair last = compactedStartEndPairs.get(compactedStartEndPairs.size() - 1);
 				NodePair first = new NodePair(last.getSecond(), compactedStartEndPairs.get(0).getFirst());
 				if (last.getFirst() > last.getSecond()) {
-					affectedWay.setMembers(affectedWay.getMembers().subList(first.getFirst(), first.getSecond() + 1));
+					try {
+
+						affectedWay.setMembers(affectedWay.getMembers().subList(first.getFirst(), first.getSecond() + 1));
+					} catch (IllegalArgumentException e) {
+						System.out.println("CommonWay start IllegalArgumentException!" + e.getMessage());
+					}
 				}
 				// Remove all other parts and rotate
 				else {
-					affectedWay.getMembers().removeAll(affectedWay.getMembers().subList(compactedStartEndPairs.get(0)
-							.getFirst() + 1, last.getSecond()));
+					affectedWay.getMembers().removeAll(
+							affectedWay.getMembers().subList(compactedStartEndPairs.get(0).getFirst() + 1, last.getSecond()));
 					Collections.rotate(affectedWay.getMembers(), -compactedStartEndPairs.get(0).getFirst() - 1);
 				}
 			}
@@ -240,19 +221,17 @@ public class CLCCreator implements CLCProcessorConstants {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				w.setNewWayId(newWayId, i);
 				scModel.clcMainWays.put(newWayId, w.getNewWay(i));
-				scModel.clcMainRelations
-						.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getFirst()), scModel.clcMainRelations))
+				scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getFirst()), scModel.clcMainRelations))
 						.addMember(new CustomRelationMember("way", newWayId, "outer"));
-				scModel.clcMainRelations
-						.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getSecond()), scModel.clcMainRelations))
+				scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(w.getSecond()), scModel.clcMainRelations))
 						.addMember(new CustomRelationMember("way", newWayId, "outer"));
 				newWayId--;
 			}
 		}
 		// Remove fully Replaced ways
 		for (Integer id : fullyReplacedWays) {
-			CustomRelation cr = scModel.clcMainRelations
-					.get(Functions.getParentRelation(scModel.clcMainWays.get(id), scModel.clcMainRelations));
+			CustomRelation cr = scModel.clcMainRelations.get(Functions.getParentRelation(scModel.clcMainWays.get(id),
+					scModel.clcMainRelations));
 			cr.removeMemberWithWayId(id);
 			scModel.clcMainWays.remove((Integer) id);
 		}
@@ -261,8 +240,7 @@ public class CLCCreator implements CLCProcessorConstants {
 	public void determineJunctions(WayPair w) {
 		CustomWay cwA = scModel.clcMainWays.get(w.getFirst());
 		CustomWay cwB = scModel.clcMainWays.get(w.getSecond());
-		System.out.println("Determine junctions: " + Integer.toString(cwA.getWayId()) + " - "
-				+ Integer.toString(cwB.getWayId()));
+		System.out.println("Determine junctions: " + Integer.toString(cwA.getWayId()) + " - " + Integer.toString(cwB.getWayId()));
 		boolean isCommon = false;
 
 		// remove last (duplicate) node from circular ways
@@ -321,8 +299,8 @@ public class CLCCreator implements CLCProcessorConstants {
 
 	private void setWayPairData(WayPair w, CustomWay cwA, CustomWay cwB) {
 		// Swap start and end if needed
-		int commonLength = w.getEndA(0) > w.getStartA(0) ? w.getEndA(0) - w.getStartA(0) : cwA.getMembers().size()
-				+ w.getEndA(0) - w.getStartA(0);
+		int commonLength = w.getEndA(0) > w.getStartA(0) ? w.getEndA(0) - w.getStartA(0) : cwA.getMembers().size() + w.getEndA(0)
+				- w.getStartA(0);
 		if (isBReversed(w.getStartB(0), w.getEndB(0), cwB.getMembers().size(), commonLength)) {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				int temp = w.getEndB(i);

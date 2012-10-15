@@ -90,9 +90,20 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 				startNodes.add(0);
 			}
 		}
+		//Order them
 		if(endNodes.get(0) < startNodes.get(0)){
 			Collections.rotate(endNodes, -1);
 		}
+		//Remove one-node ways
+		int iNode = 0;
+		do{
+			if(startNodes.get(iNode) == endNodes.get(iNode)){
+				startNodes.remove(iNode);
+				endNodes.remove(iNode);
+			}else{
+				iNode++;
+			}
+		}while (iNode < startNodes.size()); 
 		for (int i = 0; i < startNodes.size(); i++) {
 			ArrayList<CustomNode> copyOfResultNodes = new ArrayList<CustomNode>();
 			copyOfResultNodes.addAll(getVillageNodes());
@@ -171,8 +182,8 @@ public class CustomPolygon implements Comparable<CustomPolygon> {
 			// Starting node goes first
 			Collections.rotate(copyOfResultNodes, -nonISStart.get(i));
 			// Cut off the intersecting nodes on the end
-			int nonISSize = nonISEnd.get(i) > nonISStart.get(i) ? nonISEnd.get(i) - nonISStart.get(i)
-					: copyOfResultNodes.size() + nonISEnd.get(i) - nonISStart.get(i);
+			int nonISSize = nonISEnd.get(i) > nonISStart.get(i) ? nonISEnd.get(i) - nonISStart.get(i) : copyOfResultNodes.size()
+					+ nonISEnd.get(i) - nonISStart.get(i);
 			resultNodes = new ArrayList<CustomNode>(copyOfResultNodes.subList(0, nonISSize + 1));
 			CustomWay newWay = new CustomWay();
 			for (CustomNode cn : resultNodes) {
