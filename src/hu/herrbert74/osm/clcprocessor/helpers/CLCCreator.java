@@ -163,7 +163,7 @@ public class CLCCreator implements CLCProcessorConstants {
 							newWayId--;
 						}
 					} catch (IllegalArgumentException e) {
-						System.out.println("Fullround, New way 1 IllegalArgumentException!" + e.getMessage());
+						System.out.println("Fullround, New way 1. " + Integer.toString(i) + " " + e.getMessage());
 					}
 				}
 				// Remove stretches
@@ -193,7 +193,7 @@ public class CLCCreator implements CLCProcessorConstants {
 						scModel.clcMainRelations.get((Integer) parent).addMember(new CustomRelationMember("way", newWayId, "outer"));
 						newWayId--;
 					} catch (IllegalArgumentException e) {
-						System.out.println("Not full round, New way 2 IllegalArgumentException!" + e.getMessage());
+						System.out.println("Not full round, New way 2. " + Integer.toString(i) + " " + e.getMessage());
 					}
 				}
 				// Reduce affected way
@@ -205,7 +205,7 @@ public class CLCCreator implements CLCProcessorConstants {
 
 						affectedWay.setMembers(affectedWay.getMembers().subList(first.getFirst(), first.getSecond() + 1));
 					} catch (IllegalArgumentException e) {
-						System.out.println("CommonWay start IllegalArgumentException!" + e.getMessage());
+						System.out.println("CommonWay start. " + Integer.toString(i) + " " + e.getMessage());
 					}
 				}
 				// Remove all other parts and rotate
@@ -240,7 +240,7 @@ public class CLCCreator implements CLCProcessorConstants {
 	public void determineJunctions(WayPair w) {
 		CustomWay cwA = scModel.clcMainWays.get(w.getFirst());
 		CustomWay cwB = scModel.clcMainWays.get(w.getSecond());
-		System.out.println("Determine junctions: " + Integer.toString(cwA.getWayId()) + " - " + Integer.toString(cwB.getWayId()));
+		System.out.print("Determine junctions: " + Integer.toString(cwA.getWayId()) + " - " + Integer.toString(cwB.getWayId()));
 		boolean isCommon = false;
 
 		// remove last (duplicate) node from circular ways
@@ -310,6 +310,7 @@ public class CLCCreator implements CLCProcessorConstants {
 		}
 		// Create new way
 		for (int i = 0; i < w.getNumberOfWays(); i++) {
+			System.out.println(" StartA: " + w.getStartA(i) + " EndA: " + w.getEndA(i) + " StartB: " + w.getStartB(i) + " EndB: " + w.getEndB(i));
 			CustomWay newWay = new CustomWay();
 			if (w.getStartA(i) < w.getEndA(i)) {
 				newWay.getMembers().addAll(cwA.getMembers().subList(w.getStartA(i), w.getEndA(i) + 1));
