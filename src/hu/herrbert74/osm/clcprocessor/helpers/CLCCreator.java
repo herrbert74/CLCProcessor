@@ -263,6 +263,14 @@ public class CLCCreator implements CLCProcessorConstants {
 					w.setNumberOfWays(w.getNumberOfWays() + 1);
 					w.addStartA(i);
 					w.addStartB(posInB);
+				} 
+				//There is a two node interruption, where A has two nodes common with a way different to B
+				else if(Math.abs(posInB - posInBPrev) > 1) {
+					w.addEndA(i - 1);
+					w.addEndB(posInBPrev);
+					w.setNumberOfWays(w.getNumberOfWays() + 1);
+					w.addStartA(i);
+					w.addStartB(posInB);
 				}
 				isCommon = true;
 				posInBPrev = posInB;
