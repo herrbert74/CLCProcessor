@@ -1,6 +1,7 @@
 package hu.herrbert74.osm.clcprocessor;
 
 import hu.herrbert74.osm.clcprocessor.controllers.SettlementChooserController;
+import hu.herrbert74.osm.clcprocessor.helpers.CLCCreator;
 import hu.herrbert74.osm.clcprocessor.models.SettlementChooserModel;
 import hu.herrbert74.osm.clcprocessor.osmentities.CustomPolygon;
 import hu.herrbert74.osm.clcprocessor.views.SettlementChooserView;
@@ -31,9 +32,7 @@ public class CLCProcessor implements CLCProcessorConstants {
 		// ifView = new InputFileChooserView();
 		// ifModel= new InputFileChooserModel();
 		scModel.addObserver(scView);
-		SettlementChooserController scController = new SettlementChooserController();
-		scController.addModel(scModel);
-		scController.addView(scView);
+		SettlementChooserController scController = new SettlementChooserController(scModel, scView);
 		scController.initModel();
 
 		scView.addController(scController);
@@ -44,6 +43,21 @@ public class CLCProcessor implements CLCProcessorConstants {
 			scController.readBorders(new File(OSM_VILLAGEBORDERS));
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
+		}
+		
+		if (MAIN_VILLAGES.length != 0){
+			for(int i = 0; i < MAIN_VILLAGES.length; i++) {
+				scView.settlementList.add(MAIN_VILLAGES[i]);
+			}
+			for(int i = 0; i < NEIGHBOUR_VILLAGES.length; i++) {
+				scView.neighbourList.add(NEIGHBOUR_VILLAGES[i]);
+			}
+			for(int i = 0; i < EXCLUDED_VILLAGES.length; i++) {
+				scView.excludedNeighbourList.add(EXCLUDED_VILLAGES[i]);
+			}
+			CLCCreator clcCreator = new CLCCreator();
+			clcCreator.createCLC(scModel, scView);
+			scView.progressLabel.setText("Created CLC");
 		}
 		// and Model,
 		// this was only needed when the view inits the model
@@ -58,7 +72,7 @@ public class CLCProcessor implements CLCProcessorConstants {
 
 	public void showInputFileChooser() {
 		scModel.addObserver(scView);
-		SettlementChooserController scController = new SettlementChooserController();
+		SettlementChooserController scController = new SettlementChooserController(new SettlementChooserModel(), new SettlementChooserView());
 		scController.addModel(scModel);
 		scController.addView(scView);
 		scController.initModel();

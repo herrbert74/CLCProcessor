@@ -38,6 +38,13 @@ public class SettlementChooserController implements CLCProcessorConstants,
 	SettlementChooserModel scModel;
 	SettlementChooserView scView;
 
+	
+	public SettlementChooserController(SettlementChooserModel scModel, SettlementChooserView scView) {
+		this.scModel = scModel;
+		this.scView = scView;
+		
+	}
+
 	@Override
 	public void mouseScrolled(MouseEvent e) {
 	}
@@ -158,7 +165,7 @@ public class SettlementChooserController implements CLCProcessorConstants,
 
 	private void addNeighbours() {
 		/*TODO
-		 * villagePolygon has changeed from ArrayList to Map. Change this method accordingly!!!*/
+		 * villagePolygon has changed from ArrayList to Map. Change this method accordingly!!!*/
 		scView.neighbourList.removeAll();
 		for (String z : scView.settlementList.getItems()) {
 			CustomPolygon vpFound = new CustomPolygon();
