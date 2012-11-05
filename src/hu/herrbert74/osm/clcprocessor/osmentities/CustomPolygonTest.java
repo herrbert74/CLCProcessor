@@ -156,13 +156,13 @@ public class CustomPolygonTest {
 		cp.setVillageNodes(villageNodes);
 		is = new Intersections();
 		HashSet<CustomNode> iss = new HashSet<CustomNode>();
-		HashSet<CustomNode> twoNodeIntersections = new HashSet<CustomNode>();
+		HashSet<CustomNode> twoNodeNonIntersections = new HashSet<CustomNode>();
 		iss.add(villageNodes.get(1));
 		iss.add(villageNodes.get(2));
-		twoNodeIntersections.add(villageNodes.get(6));
-		twoNodeIntersections.add(villageNodes.get(7));
+		twoNodeNonIntersections.add(villageNodes.get(6));
+		twoNodeNonIntersections.add(villageNodes.get(7));
 		is.setIntersections(iss);
-		is.setTwoNodeIntersections(twoNodeIntersections);
+		is.setTwoNodeNonIntersections(twoNodeNonIntersections);
 	}
 
 	private ArrayList<CustomNode> getVillageNodes() {

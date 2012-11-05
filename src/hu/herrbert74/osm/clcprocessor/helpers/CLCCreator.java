@@ -25,7 +25,7 @@ public class CLCCreator implements CLCProcessorConstants {
 	public void createCLC(SettlementChooserModel scM, SettlementChooserView scV) {
 		this.scView = scV;
 		this.scModel = scM;
-		PolygonCreator pc = new PolygonCreator(scModel);
+		BorderPolygonCreator pc = new BorderPolygonCreator(scModel);
 		scModel.setStatus("Creating main polygon");
 		scModel.borderPolygon = pc.createBorderPolygon(scView.settlementList.getItems());
 		scModel.setStatus("Creating neighbour polygon");
@@ -121,10 +121,18 @@ public class CLCCreator implements CLCProcessorConstants {
 			compactedStartEndPairs.add(new NodePair(startEndPairs.get(0).getFirst(), startEndPairs.get(0).getSecond()));
 			// Compact it!
 			for (int i2 = 1; i2 < startEndPairs.size(); i2++) {
-				if (startEndPairs.get(i2 - 1).getSecond() == startEndPairs.get(i2).getFirst()) {
-					compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).setSecond(startEndPairs.get(i2).getSecond());
-				} else {
-					compactedStartEndPairs.add(new NodePair(startEndPairs.get(i2).getFirst(), startEndPairs.get(i2).getSecond()));
+				// Drop identical SEPairs (they come from big relations where
+				// the inner way contains two independent landuses)
+				if (!(startEndPairs.get(i2 - 1).getFirst() == startEndPairs.get(i2).getFirst() && startEndPairs.get(i2 - 1).getSecond() == startEndPairs
+						.get(i2).getSecond())) {
+					// Just extend by overwriting the second tag
+					if (startEndPairs.get(i2 - 1).getSecond() == startEndPairs.get(i2).getFirst()) {
+						compactedStartEndPairs.get(compactedStartEndPairs.size() - 1).setSecond(startEndPairs.get(i2).getSecond());
+					}
+					// Add it
+					else {
+						compactedStartEndPairs.add(new NodePair(startEndPairs.get(i2).getFirst(), startEndPairs.get(i2).getSecond()));
+					}
 				}
 			}
 			// Compact rotated pairs
@@ -259,18 +267,28 @@ public class CLCCreator implements CLCProcessorConstants {
 			int posInB = cwB.containsNode(cwA.getMembers().get(i));
 
 			if (posInB >= 0) {
+				int absoluteDifference = Math.abs(posInB - posInBPrev);
 				if (!isCommon) {
 					w.setNumberOfWays(w.getNumberOfWays() + 1);
 					w.addStartA(i);
 					w.addStartB(posInB);
-				} 
-				//There is a two node interruption, where A has two nodes common with a way different to B
-				else if(Math.abs(posInB - posInBPrev) > 1) {
-					w.addEndA(i - 1);
-					w.addEndB(posInBPrev);
-					w.setNumberOfWays(w.getNumberOfWays() + 1);
-					w.addStartA(i);
-					w.addStartB(posInB);
+				} else {
+					// Both this and the last node is common, so determine if B
+					// is reversed
+					if ((posInB < posInBPrev && posInB > 0) || posInBPrev == 0 && posInB == cwB.getMembers().size()) {
+						w.setBReversed(true);
+					}
+
+					// There is a two node interruption, where A has two nodes
+					// common with a way different to B
+					if (!(absoluteDifference == 1 || absoluteDifference == cwB.getMembers().size() - 1)) {
+
+						w.addEndA(i - 1);
+						w.addEndB(posInBPrev);
+						w.setNumberOfWays(w.getNumberOfWays() + 1);
+						w.addStartA(i);
+						w.addStartB(posInB);
+					}
 				}
 				isCommon = true;
 				posInBPrev = posInB;
@@ -284,41 +302,38 @@ public class CLCCreator implements CLCProcessorConstants {
 			}
 		}
 		if (isCommon) {
-			// if (!cwA.isFullRound()) {
+			// The last common way ended at the last node of way A!
 			if (w.getEndASize() < w.getNumberOfWays()) {
 				w.addEndA(cwA.getMembers().size() - 1);
-			}
-			/*
-			 * if (!cwB.isFullRound()) { w.addEndB(isBReversed ? 0 :
-			 * cwB.getMembers().size() - 1); } else
-			 */
-
-			if (w.getEndBSize() < w.getNumberOfWays()) {
 				w.addEndB(posInBPrev);
 			}
+			// If way A started and ended with common way then the first start
+			// node is unneeded...
 			if (w.getStartA(0) == 0 && w.getNumberOfWays() > 1) {
-				w.setStartA(w.getStartA(w.getNumberOfWays() - 1), 0);
-				w.setStartB(w.getStartB(w.getNumberOfWays() - 1), 0);
-				w.setNumberOfWays(w.getNumberOfWays() - 1);
+				// ...but only if the stretch between the first and last node of
+				// way A is common with B!!!
+				int absoluteDifference = Math.abs(w.getStartB(0) - w.getEndB(w.getNumberOfWays() - 1));
+				if (absoluteDifference == 1 || absoluteDifference == cwB.getMembers().size() - 1) {
+					w.setStartA(w.getStartA(w.getNumberOfWays() - 1), 0);
+					w.setStartB(w.getStartB(w.getNumberOfWays() - 1), 0);
+					w.setNumberOfWays(w.getNumberOfWays() - 1);
+				}
 			}
 		}
-		setWayPairData(w, cwA, cwB);
-	}
-
-	private void setWayPairData(WayPair w, CustomWay cwA, CustomWay cwB) {
-		// Swap start and end if needed
-		int commonLength = w.getEndA(0) > w.getStartA(0) ? w.getEndA(0) - w.getStartA(0) : cwA.getMembers().size() + w.getEndA(0)
-				- w.getStartA(0);
-		if (isBReversed(w.getStartB(0), w.getEndB(0), cwB.getMembers().size(), commonLength)) {
+		if (w.isBReversed()) {
 			for (int i = 0; i < w.getNumberOfWays(); i++) {
 				int temp = w.getEndB(i);
 				w.setEndB(w.getStartB(i), i);
 				w.setStartB(temp, i);
 			}
 		}
-		// Create new way
+		createNewWays(w, cwA, cwB);
+	}
+
+	private void createNewWays(WayPair w, CustomWay cwA, CustomWay cwB) {
 		for (int i = 0; i < w.getNumberOfWays(); i++) {
-			System.out.println(" StartA: " + w.getStartA(i) + " EndA: " + w.getEndA(i) + " StartB: " + w.getStartB(i) + " EndB: " + w.getEndB(i));
+			System.out.println(" StartA: " + w.getStartA(i) + " EndA: " + w.getEndA(i) + " StartB: " + w.getStartB(i) + " EndB: "
+					+ w.getEndB(i));
 			CustomWay newWay = new CustomWay();
 			if (w.getStartA(i) < w.getEndA(i)) {
 				newWay.getMembers().addAll(cwA.getMembers().subList(w.getStartA(i), w.getEndA(i) + 1));
@@ -328,14 +343,5 @@ public class CLCCreator implements CLCProcessorConstants {
 			}
 			w.addNewWay(newWay);
 		}
-	}
-
-	private boolean isBReversed(int startB, int endB, int lengthB, int commonLength) {
-		if ((endB - startB) == commonLength) {
-			return false;
-		} else if ((lengthB + endB - startB) == commonLength) {
-			return false;
-		}
-		return true;
 	}
 }

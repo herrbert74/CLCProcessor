@@ -6,6 +6,7 @@ public class WayPair {
 
 	int first;
 	int second;
+	boolean isBReversed;
 	ArrayList<Integer> startA = new ArrayList<Integer>();
 	ArrayList<Integer> endA = new ArrayList<Integer>();
 	ArrayList<Integer> startB = new ArrayList<Integer>();
@@ -25,7 +26,16 @@ public class WayPair {
 		numberOfWays = 0;
 		first = a;
 		second = b;
+		isBReversed = false;
 		newWay = new ArrayList<CustomWay>();
+	}
+
+	public boolean isBReversed() {
+		return isBReversed;
+	}
+
+	public void setBReversed(boolean isBReversed) {
+		this.isBReversed = isBReversed;
 	}
 
 	public int getStartA(int pos) {
