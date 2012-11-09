@@ -41,7 +41,7 @@ public class CLCWaysHandler extends DefaultHandler {
 		if ("way".equals(qName)) {
 			vw.setWayId(Integer.parseInt(attrs.getValue("id")));
 		}
-		if ("nd".equals(qName) && "way".equals(eleStack.peek())) {
+		else if ("nd".equals(qName) && "way".equals(eleStack.peek())) {
 			if (clcMainNodes
 					.containsKey(Integer.parseInt(attrs.getValue("ref")))
 					|| clcNeighbourNodes.containsKey(Integer.parseInt(attrs
@@ -52,7 +52,7 @@ public class CLCWaysHandler extends DefaultHandler {
 				}
 			}
 		}
-		if ("tag".equals(qName) && "way".equals(eleStack.peek())) {
+		else if ("tag".equals(qName) && "way".equals(eleStack.peek())) {
 			vw.addTag(attrs.getValue("k"), attrs.getValue("v"));
 		}
 		eleStack.push(qName);

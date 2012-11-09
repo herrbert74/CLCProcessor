@@ -38,8 +38,8 @@ public class CLCRelationsHandler extends DefaultHandler {
 		}
 		if ("member".equals(qName) && "relation".equals(eleStack.peek())) {
 			if (clcMainWays.containsKey(Integer.parseInt(attrs.getValue("ref")))) {
-				cr.addMember(new CustomRelationMember(attrs.getValue("type"), Integer.parseInt(attrs.getValue("ref")),
-						attrs.getValue("role")));
+				cr.addMember(new CustomRelationMember(attrs.getValue("type"), Integer.parseInt(attrs.getValue("ref")), attrs
+						.getValue("role")));
 				if (attrs.getValue("role").equals("outer")) {
 					CustomWay cw = clcMainWays.get(Integer.parseInt(attrs.getValue("ref")));
 					Iterator<Map.Entry<String, String>> it = cw.getTags().entrySet().iterator();
@@ -52,6 +52,10 @@ public class CLCRelationsHandler extends DefaultHandler {
 				isRelationMember = true;
 			}
 
+		} else if ("tag".equals(qName) && "relation".equals(eleStack.peek())) {
+			if (!"fixme".equals(attrs.getValue("k"))) {
+				cr.addTag(attrs.getValue("k"), attrs.getValue("v"));
+			}
 		}
 		eleStack.push(qName);
 

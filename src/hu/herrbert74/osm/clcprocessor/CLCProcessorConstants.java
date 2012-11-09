@@ -2,7 +2,8 @@ package hu.herrbert74.osm.clcprocessor;
 
 public interface CLCProcessorConstants {
 	public final String OSM_VILLAGEBORDERS = "c:\\osm\\osmdata\\village_boundaries\\villages.osm";
-	public final String OSM_CLCDATA = "c:\\osm\\osmdata\\clc\\clc06_hu_resave.osm";
+	//public final String OSM_CLCDATA = "c:\\osm\\osmdata\\clc\\clc06_hu_resave.osm";
+	public final String OSM_CLCDATA = "c:\\osm\\clchu\\clc_hungary_optimized_v0.2.1.osm";
 	public final String FOLDER_VILLAGEBORDERS = "c:\\osm\\osmdata\\village_boundaries";
 	/*public final String[] MAIN_VILLAGES = {};
 	public final String[] NEIGHBOUR_VILLAGES = {};

@@ -42,7 +42,7 @@ public class CLCReader implements CLCProcessorConstants {
 			scModel.clcMainWays = readWays(new File(OSM_CLCDATA), scModel.clcMainNodes, scModel.clcNeighbourNodes);
 		} catch (ParserConfigurationException | SAXException | IOException e) {
 			e.printStackTrace();
-		}
+		}			
 		scModel.setStatus("Reading CLC relations");
 		try {
 			scModel.clcMainRelations = readRelations(new File(OSM_CLCDATA), scModel.clcMainWays);

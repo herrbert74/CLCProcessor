@@ -34,7 +34,7 @@ public class CLCCreator implements CLCProcessorConstants {
 		clcReader.readCLCData();
 		convertPureWaysToRelations();
 		createWayPairs();
-		splitWaysAndUpdateRelations();
+		//splitWaysAndUpdateRelations();
 		XMLFunctions.writeOSM(scModel.clcMainNodes, scModel.clcMainWays, scModel.clcMainRelations, "clc_out.osm");
 	}
 
